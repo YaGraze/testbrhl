@@ -471,6 +471,45 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     except Exception:
         pass
 
+# --- ОБРАБОТКА ВЫБОРА КЛАССА ---
+@dp.callback_query(F.data.startswith("duel_set_"))
+async def duel_class_handler(callback: types.CallbackQuery):
+    game_id = callback.message.message_id
+    
+    # Проверка на существование игры
+    if game_id not in ACTIVE_DUELS:
+        await callback.answer("Игра не найдена.", show_alert=True)
+        try: await callback.message.delete()
+        except: pass
+        return
+
+    game = ACTIVE_DUELS[game_id]
+    
+    # Проверка: нажимать может только "chooser"
+    if callback.from_user.id != game["chooser"]:
+        await callback.answer("Не ты выбираешь класс!", show_alert=True)
+        return
+
+    # Определяем класс
+    choice = callback.data.split("_")[2] # hunter, warlock, random
+    
+    if choice == "random":
+        final_class = random.choice(["hunter", "warlock"])
+    else:
+        final_class = choice
+
+    # Обновляем данные игры
+    game["class"] = final_class
+    game["state"] = "fighting" # Переводим в боевой режим
+    
+    # Текст лога
+    class_names = {"hunter": "Хантеров", "warlock": "Варлоков"}
+    game["log"] = f"Выбран класс {class_names[final_class]}! Бой начинается!"
+
+    # Запускаем бой
+    await update_duel_message(callback, game_id)
+    await callback.answer()
+
 @dp.callback_query(F.data.startswith("duel_"))
 async def duel_handler(callback: types.CallbackQuery):
     data_parts = callback.data.split("|")
@@ -484,7 +523,7 @@ async def duel_handler(callback: types.CallbackQuery):
         await callback.message.edit_text(f"🏳️ Дуэль отменена. Соперник сбежал на орбиту.")
         return
 
-    # --- СТАРТ (ВЫБОР КЛАССА) ---
+    # --- СТАРТ (ОПРЕДЕЛЕНИЕ ОЧЕРЕДИ И ВЫБОР КЛАССА) ---
     if action == "duel_start":
         attacker_id = int(data_parts[1])
         defender_id = int(data_parts[2])
@@ -493,6 +532,8 @@ async def duel_handler(callback: types.CallbackQuery):
             return
 
         game_id = callback.message.message_id
+        
+        # Получаем имена
         try:
             att_m = await bot.get_chat_member(callback.message.chat.id, attacker_id)
             def_m = await bot.get_chat_member(callback.message.chat.id, defender_id)
@@ -501,19 +542,46 @@ async def duel_handler(callback: types.CallbackQuery):
         except:
             att_name, def_name = "Игрок 1", "Игрок 2"
 
-        current_turn = random.choice([attacker_id, defender_id])
+        # 1. Кидаем монетку: кто стреляет первым?
+        first_shooter_id = random.choice([attacker_id, defender_id])
         
-        # ВЫБИРАЕМ КЛАСС (50/50)
-        game_class = random.choice(["hunter", "warlock"])
+        # 2. Тот, кто НЕ стреляет первым — выбирает класс
+        class_chooser_id = defender_id if first_shooter_id == attacker_id else attacker_id
         
+        # Имя выбирающего для текста
+        chooser_name = def_name if class_chooser_id == defender_id else att_name
+        shooter_name = att_name if first_shooter_id == attacker_id else def_name
+
+        # Сохраняем промежуточное состояние
         ACTIVE_DUELS[game_id] = {
             "p1": {"id": attacker_id, "name": att_name, "hp": 100},
             "p2": {"id": defender_id, "name": def_name, "hp": 100},
-            "turn": current_turn,
-            "class": game_class, # Запоминаем класс
-            "log": "🗣 Шакс: Классы выбраны! Бой начинается!"
+            "turn": first_shooter_id,     # Кто будет стрелять
+            "chooser": class_chooser_id,  # Кто выбирает класс сейчас
+            "state": "choosing_class",    # Статус игры
+            "log": "🗣 Шакс: Очередь определена! Выбирайте снаряжение."
         }
-        await update_duel_message(callback, game_id)
+
+        # Меню выбора класса
+        buttons = [
+            [
+                InlineKeyboardButton(text="🐍 Хантеры (GG + Ace)", callback_data="duel_set_hunter"),
+                InlineKeyboardButton(text="🔮 Варлоки (Nova + Ace)", callback_data="duel_set_warlock")
+            ],
+            [
+                InlineKeyboardButton(text="🎲 Рандом", callback_data="duel_set_random")
+            ]
+        ]
+        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+
+        text = (
+            f"⚖️ БАЛАНС СИЛ\n\n"
+            f"🔫 Первый ход: {shooter_name}\n"
+            f"🗳 Выбор класса: {chooser_name}\n\n"
+            f"{chooser_name}, выбирай класс для дуэли!"
+        )
+
+        await callback.message.edit_text(text, reply_markup=keyboard)
         await callback.answer()
         return
 
@@ -528,6 +596,10 @@ async def duel_handler(callback: types.CallbackQuery):
             return
 
         game = ACTIVE_DUELS[game_id]
+
+        if game.get("state") == "choosing_class":
+            await callback.answer("Сначала выберите класс!", show_alert=True)
+            return
         
         # ПРОВЕРКА КЛАССА (Чит-контроль)
         # Если играем на Хантах, но нажата Нова -> игнор
@@ -1007,6 +1079,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
