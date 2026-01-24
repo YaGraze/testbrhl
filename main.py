@@ -247,7 +247,7 @@ async def log_to_owner(text):
     
     # 2. Отправляем в ЛС
     try:
-        await bot.send_message(OWNER_ID, f"🤖 <b>SYSTEM LOG:</b>\n{text}")
+        await bot.send_message(OWNER_ID, f"🤖 SYSTEM LOG:\n{text}")
     except Exception as e:
         print(f"⚠️ Не удалось отправить лог в ЛС (проверь OWNER_ID и нажми /start боту): {e}")
 
@@ -452,7 +452,7 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     if game_class == "hunter":
         buttons = [
             [
-                InlineKeyboardButton(text="🔥 GG (12%)", callback_data="duel_gg"),
+                InlineKeyboardButton(text="🔥 GG (12% / kill)", callback_data="duel_gg"),
                 InlineKeyboardButton(text="♠️ Ace (50% / 34dmg)", callback_data="duel_ace")
             ]
         ]
@@ -460,7 +460,7 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
         buttons = [
             [
                 # Общий шанс попадания 40% (15+25)
-                InlineKeyboardButton(text="🟣 Nova (30% / 70+dmg%)", callback_data="duel_nova"),
+                InlineKeyboardButton(text="🟣 Nova (30% / 70+dmg)", callback_data="duel_nova"),
                 InlineKeyboardButton(text="♠️ Ace (50% / 34dmg)", callback_data="duel_ace")
             ]
         ]
@@ -1079,6 +1079,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
