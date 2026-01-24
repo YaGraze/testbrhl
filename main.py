@@ -390,7 +390,7 @@ async def duel_command(message: types.Message):
         msg = await message.reply("Найди себе достойного противника.")
         asyncio.create_task(delete_later(msg, 5))
         return
-        
+
     att_name = f"@{attacker.username}" if attacker.username else attacker.first_name
     def_name = f"@{defender.username}" if defender.username else defender.first_name
 
@@ -401,14 +401,15 @@ async def duel_command(message: types.Message):
         ]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-    
+
     await message.answer(
         f"🔥 ГОРНИЛО: ПРИВАТНЫЙ МАТЧ!\n\n"
         f"🔴 Претендент: {att_name}\n"
         f"🔵 Цель: {def_name}\n\n"
-        f"📜 Правила: 100 HP. Пошаговый бой.\n"
-        f"🔥 GG: 12% шанс (Ваншот)\n"
-        f"♠️ Ace: 50% шанс (-34 HP)\n"
+        f"📜 Правила: 100HP у Стражей,.\n"
+        f"🎲 Случайный класс (Хант или Варлок).\n"
+        f"🔫 - Ханты: Голден Ган + Туз\n"
+        f"🔮 - Варлоки: Нова Бомба + Туз\n"
         f"{def_name}, ты принимаешь бой?",
         reply_markup=keyboard
     )
@@ -421,6 +422,7 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
         return
 
     game = ACTIVE_DUELS[game_id]
+    game_class = game.get("class", "hunter") # По умолчанию хантер (для старых игр)
     
     def get_hp_bar(hp):
         blocks = int(hp / 10) 
@@ -428,8 +430,13 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
 
     p1 = game["p1"]
     p2 = game["p2"]
-    
     current_turn_name = p1["name"] if game["turn"] == p1["id"] else p2["name"]
+
+    # Заголовок зависит от класса
+    if game_class == "hunter":
+        title = "🐍 ДУЭЛЬ НА ХАНТАХ"
+    else:
+        title = "🔮 ДУЭЛЬ НА ВАРЛОКАХ"
 
     text = (
         f"⚔️ ДУЭЛЬ: РАУНД ИДЕТ\n\n"
@@ -441,12 +448,23 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
         f"👉 Сейчас ходит: {current_turn_name}"
     )
 
-    buttons = [
-        [
-            InlineKeyboardButton(text="🔥 GG (12% / Kill)", callback_data="duel_gg"),
-            InlineKeyboardButton(text="♠️ Ace (50% / -34HP)", callback_data="duel_ace")
+    # Кнопки зависят от класса
+    if game_class == "hunter":
+        buttons = [
+            [
+                InlineKeyboardButton(text="🔥 GG (12%)", callback_data="duel_gg"),
+                InlineKeyboardButton(text="♠️ Ace (50% / 34dmg)", callback_data="duel_ace")
+            ]
         ]
-    ]
+    else: # warlock
+        buttons = [
+            [
+                # Общий шанс попадания 40% (15+25)
+                InlineKeyboardButton(text="🟣 Nova (40%)", callback_data="duel_nova"),
+                InlineKeyboardButton(text="♠️ Ace (50% / 34dmg)", callback_data="duel_ace")
+            ]
+        ]
+
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     try:
         await callback.message.edit_text(text, reply_markup=keyboard)
@@ -466,6 +484,7 @@ async def duel_handler(callback: types.CallbackQuery):
         await callback.message.edit_text(f"🏳️ Дуэль отменена. Соперник сбежал на орбиту.")
         return
 
+    # --- СТАРТ (ВЫБОР КЛАССА) ---
     if action == "duel_start":
         attacker_id = int(data_parts[1])
         defender_id = int(data_parts[2])
@@ -483,26 +502,43 @@ async def duel_handler(callback: types.CallbackQuery):
             att_name, def_name = "Игрок 1", "Игрок 2"
 
         current_turn = random.choice([attacker_id, defender_id])
+        
+        # ВЫБИРАЕМ КЛАСС (50/50)
+        game_class = random.choice(["hunter", "warlock"])
+        
         ACTIVE_DUELS[game_id] = {
             "p1": {"id": attacker_id, "name": att_name, "hp": 100},
             "p2": {"id": defender_id, "name": def_name, "hp": 100},
             "turn": current_turn,
-            "log": "🗣 Шакс: Матч начался! Покажите, на что способны!"
+            "class": game_class, # Запоминаем класс
+            "log": "🗣 Шакс: Классы выбраны! Бой начинается!"
         }
         await update_duel_message(callback, game_id)
         await callback.answer()
         return
 
-    if action in ["duel_gg", "duel_ace"]:
+    # --- ВЫСТРЕЛ ---
+    if action in ["duel_gg", "duel_ace", "duel_nova"]:
         game_id = callback.message.message_id
         
         if game_id not in ACTIVE_DUELS:
-            await callback.answer("Матч не найден (Бот был перезагружен).", show_alert=True)
+            await callback.answer("Матч не найден.", show_alert=True)
             try: await callback.message.delete()
             except: pass
             return
 
         game = ACTIVE_DUELS[game_id]
+        
+        # ПРОВЕРКА КЛАССА (Чит-контроль)
+        # Если играем на Хантах, но нажата Нова -> игнор
+        if game["class"] == "hunter" and action == "duel_nova":
+            await callback.answer("Ты Хантер! У тебя нет Новы.", show_alert=True)
+            return
+        # Если играем на Варлоках, но нажат ГГ -> игнор
+        if game["class"] == "warlock" and action == "duel_gg":
+            await callback.answer("Ты Варлок! У тебя нет ГГ.", show_alert=True)
+            return
+
         shooter_id = callback.from_user.id
 
         if shooter_id != game["turn"]:
@@ -520,27 +556,51 @@ async def duel_handler(callback: types.CallbackQuery):
         hit = False
         weapon_name = ""
 
+        # --- ЛОГИКА ОРУЖИЯ ---
         if action == "duel_gg":
             weapon_name = "🔥 Голден Ган"
             if random.randint(1, 100) <= 12: # 12%
                 hit = True
                 damage = 100
+                
         elif action == "duel_ace":
             weapon_name = "♠️ Пиковый Туз"
             if random.randint(1, 100) <= 50: # 50%
                 hit = True
                 damage = 34
+                
+        elif action == "duel_nova":
+            weapon_name = "🟣 Нова Бомба"
+            
+            # Кидаем кубик от 1 до 100
+            roll = random.randint(1, 100)
+            
+            # 1-15: Ваншот (100 урона)
+            if roll <= 15:
+                hit = True
+                damage = 100
+            # 16-40 (следующие 25%): Урон 70
+            elif roll <= 40:
+                hit = True
+                damage = 70
+            # 41-100: Промах
+            else:
+                hit = False
+                damage = 0
 
         if hit:
             target["hp"] -= damage
             if target["hp"] < 0: target["hp"] = 0
-            log_msg = f"💥 Попадание! {shooter['name']} использует {weapon_name} и сносит {damage} HP!"
+            
+            # Разный текст для разного урона Новы
+            if action == "duel_nova" and damage == 100:
+                log_msg = f"💥 КРИТ! {shooter['name']} кидает Нову и стирает врага в пыль (100 урона)!"
+            else:
+                log_msg = f"💥 Попадание! {shooter['name']} использует {weapon_name} и сносит {damage} HP!"
         else:
             log_msg = f"💨 Промах! {shooter['name']} промазал с {weapon_name}."
 
-         # Проверка на победу
         if target["hp"] <= 0:
-            # === ОБНОВЛЕНИЕ СТАТИСТИКИ (JSON) ===
             update_duel_stats(shooter['id'], is_winner=True)
             update_duel_stats(target['id'], is_winner=False)
             
@@ -552,8 +612,6 @@ async def duel_handler(callback: types.CallbackQuery):
                 f"💀 {target['name']} повержен. Шакс объявляет нокаут.",
                 reply_markup=None
             )
-            
-            # --- ЗДЕСЬ РАНЬШЕ БЫЛ КОД КИКА (try...except), ТЕПЕРЬ ЕГО НЕТ ---
             
             await callback.answer()
             return
