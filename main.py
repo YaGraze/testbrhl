@@ -460,7 +460,7 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
         buttons = [
             [
                 # Общий шанс попадания 40% (15+25)
-                InlineKeyboardButton(text="🟣 Nova (40%)", callback_data="duel_nova"),
+                InlineKeyboardButton(text="🟣 Nova (30% / 70+dmg%)", callback_data="duel_nova"),
                 InlineKeyboardButton(text="♠️ Ace (50% / 34dmg)", callback_data="duel_ace")
             ]
         ]
@@ -576,11 +576,11 @@ async def duel_handler(callback: types.CallbackQuery):
             roll = random.randint(1, 100)
             
             # 1-15: Ваншот (100 урона)
-            if roll <= 15:
+            if roll <= 10:
                 hit = True
                 damage = 100
             # 16-40 (следующие 25%): Урон 70
-            elif roll <= 40:
+            elif roll <= 30:
                 hit = True
                 damage = 70
             # 41-100: Промах
@@ -1007,6 +1007,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
