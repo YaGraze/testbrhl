@@ -414,8 +414,7 @@ async def duel_command(message: types.Message):
         f"🔥 ГОРНИЛО: ПРИВАТНЫЙ МАТЧ!\n\n"
         f"🔴 Страж №1: {att_name}\n"
         f"🔵 Страж №2: {def_name}\n\n"
-        f"📜 Правила: у Стражей 100HP;\n"
-        f"🎲 Классы на выбор:\n"
+        f"📜 Сетапы классов:\n"
         f"🔫 - Ханты: Голден Ган + Туз\n"
         f"🔮 - Варлоки: Нова Бомба + Туз\n"
         f"☄️ - Титаны: Тандеркраш + Туз\n\n"
@@ -444,7 +443,8 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     current_name = current_player["name"]
 
     # Формируем заголовок (показываем классы игроков)
-    ru_classes = {"hunter": "🐍", "warlock": "🔮", "titan": "🛡"}
+    ru_cl = {"hunter": "🐍", "warlock": "🔮", "titan": "🛡"}
+    ru_classes = {"hunter": "Хантер 🐍", "warlock": "Варлок 🔮", "titan": "Титан 🛡"}
     title = f"{ru_classes[p1['class']]} vs {ru_classes[p2['class']]}"
 
     # Статус полета Титана
@@ -458,8 +458,9 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
         f"[{get_hp_bar(p1['hp'])}]\n\n"
         f"🔵 {p2['name']}: {p2['hp']} HP\n"
         f"[{get_hp_bar(p2['hp'])}]\n\n"
-        f"📜 Лог: {game['log']}{flying_status}\n\n"
-        f"👉 Ход: {current_name} ({ru_classes[current_class]})"
+        f"📜 Лог: {game['log']}\n\n"
+        f"{flying_status}\n\n"
+        f"👉 Ход: {current_name} [{ru_cl[current_class]}]"
     )
 
     # ГЕНЕРИРУЕМ КНОПКИ ДЛЯ ТОГО, ЧЕЙ СЕЙЧАС ХОД
@@ -479,7 +480,7 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
         # Если титан уже летит, кнопку полета блокировать не обязательно (мы блочим в логике),
         # но можно визуально убрать. Оставим пока как есть.
         buttons = [
-            [InlineKeyboardButton(text="⚡ Crash (17% / Delay)", callback_data="duel_crash"),
+            [InlineKeyboardButton(text="⚡ Crash (22% / Delay)", callback_data="duel_crash"),
              InlineKeyboardButton(text="♠️ Ace (55% / 25dmg)", callback_data="duel_ace")]
         ]
 
@@ -760,15 +761,15 @@ async def duel_handler(callback: types.CallbackQuery):
                     
                     game["pending_crash"] = None # Сброс полета
                     
-                    # Шанс 17%
-                    if random.randint(1, 100) <= 17:
+                    # Шанс 22%
+                    if random.randint(1, 100) <= 22:
                         enemy["hp"] = 0
                         
                         update_duel_stats(titan['id'], True)
                         update_duel_stats(enemy['id'], False)
                         del ACTIVE_DUELS[game_id]
                         
-                        final_msg = f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n⚡ <b>БУУМ!</b> {enemy['name']} разлетается на атомы! (-100 HP)"
+                        final_msg = f"🏆 ПОБЕДА!\n\n{log_msg}\n\n⚡ БУУМ! {titan['name']} размазал соперника! (-100 HP)"
                         await callback.message.edit_text(final_msg, reply_markup=None)
                         await callback.answer()
                         return
@@ -1169,6 +1170,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
