@@ -560,13 +560,75 @@ async def duel_class_handler(callback: types.CallbackQuery):
         
     await callback.answer()
 
+@dp.callback_query(F.data.startswith("duel_"))
+async def duel_handler(callback: types.CallbackQuery):
+    data_parts = callback.data.split("|")
+    action = data_parts[0]
+    
+    if action == "duel_decline":
+        defender_id = int(data_parts[2])
+        if callback.from_user.id != defender_id:
+            await callback.answer("Не лезь, это не твой бой!", show_alert=True)
+            return
+        await callback.message.edit_text(f"🏳️ Дуэль отменена. Соперник сбежал на орбиту.")
+        return
+
+    # --- СТАРТ (ПЕРЕХОД К ВЫБОРУ КЛАССОВ) ---
+    if action == "duel_start":
+        attacker_id = int(data_parts[1])
+        defender_id = int(data_parts[2])
+        if callback.from_user.id != defender_id:
+            await callback.answer("Жди решения соперника!", show_alert=True)
+            return
+
+        game_id = callback.message.message_id
+        
+        try:
+            att_m = await bot.get_chat_member(callback.message.chat.id, attacker_id)
+            def_m = await bot.get_chat_member(callback.message.chat.id, defender_id)
+            att_name = f"@{att_m.user.username}" if att_m.user.username else att_m.user.first_name
+            def_name = f"@{def_m.user.username}" if def_m.user.username else def_m.user.first_name
+        except:
+            att_name, def_name = "Игрок 1", "Игрок 2"
+
+        # Инициализируем игру, но ХП пока не важны, главное ID и имена
+        ACTIVE_DUELS[game_id] = {
+            "p1": {"id": attacker_id, "name": att_name, "hp": 100, "class": None}, # Класс пока пустой
+            "p2": {"id": defender_id, "name": def_name, "hp": 100, "class": None},
+            "state": "choosing_classes",
+            "log": "Ожидание выбора классов..."
+        }
+        save_duels()
+
+        # Меню выбора для ОБОИХ
+        buttons = [
+            [
+                InlineKeyboardButton(text="🐍 Хантер", callback_data="duel_pick_hunter"),
+                InlineKeyboardButton(text="🔮 Варлок", callback_data="duel_pick_warlock"),
+                InlineKeyboardButton(text="🛡 Титан", callback_data="duel_pick_titan")
+            ],
+            [InlineKeyboardButton(text="🎲 Рандом", callback_data="duel_pick_random")]
+        ]
+        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+
+        text = (
+            f"🗳 ВЫБОР КЛАССОВ\n\n"
+            f"👤 {att_name}: Ожидание...\n"
+            f"👤 {def_name}: Ожидание...\n\n"
+            f"Каждый выбирает сам за себя!"
+        )
+
+        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.answer()
+        return
+    
     # --- ВЫСТРЕЛ ---
     if action in ["duel_gg", "duel_ace", "duel_nova", "duel_crash"]:
         game_id = callback.message.message_id
         
         if game_id not in ACTIVE_DUELS:
             await callback.answer("Матч устарел.", show_alert=True)
-            try: await callback.message.edit_text("🚫 <b>Матч аннулирован</b>", reply_markup=None)
+            try: await callback.message.edit_text("🚫 Матч аннулирован. (Кажется... Тапир?", reply_markup=None)
             except: pass
             return
 
@@ -1111,6 +1173,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
