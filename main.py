@@ -637,13 +637,15 @@ async def duel_handler(callback: types.CallbackQuery):
             shooter = game["p2"]
             target = game["p1"]
 
-        # === ЛОГИКА ТИТАНА (ГРОМОВОЙ УДАР) ===
+        # === ЛОГИКА ТИТАНА (ЗАПУСК) ===
         if action == "duel_crash":
-            # Титан улетает в воздух, урон не наносится сразу
-            game["pending_crash"] = shooter_id # Запоминаем, кто летит
+            game["pending_crash"] = shooter_id # Кто летит
+            game["crash_turns"] = 2            # Сколько ходов у врага
             game["turn"] = target["id"]        # Передаем ход врагу
-            game["log"] = f"⚡ ГРОМ! {shooter['name']} взмывает в воздух! У {target['name']} есть один шанс сбить его!"
             
+            game["log"] = f"⚡ ГРОМ! {shooter['name']} взмывает в воздух! У {target['name']} есть 2 выстрела!"
+            
+            save_duels()
             await update_duel_message(callback, game_id)
             await callback.answer()
             return
@@ -687,35 +689,51 @@ async def duel_handler(callback: types.CallbackQuery):
             await callback.answer()
             return
 
-        # === ПРИЗЕМЛЕНИЕ ТИТАНА (ЕСЛИ БЫЛ ЗАПУЩЕН) ===
-        # Если враг стрелял в Титана, который был в воздухе, и Титан выжил
-        if game.get("pending_crash") == target["id"]: # target - это Титан, в которого стреляли
-            titan = target
-            enemy = shooter # Тот, кто только что стрелял
-            
-            # Титан приземляется!
-            game["pending_crash"] = None # Сбрасываем статус
-            
-            # Шанс попадания ультой 15%
-            crash_hit = random.randint(1, 100) <= 12
-            
-            if crash_hit:
-                enemy["hp"] = 0 # Ваншот
-                log_msg += f"\n\n⚡ БУУМ! {titan['name']} раздавил врага громовым ударом! (-100 HP)"
+        # === ЛОГИКА ПОЛЕТА / ПРИЗЕМЛЕНИЯ ===
+        # Проверяем, летит ли кто-то (pending_crash - ID Титана)
+        flying_titan_id = game.get("pending_crash")
+        
+        if flying_titan_id:
+            # Если стрелял тот, кто НЕ летит (то есть враг, пытающийся сбить)
+            if shooter_id != flying_titan_id:
+                # Уменьшаем счетчик ходов
+                game["crash_turns"] -= 1
+                turns_left = game["crash_turns"]
                 
-                # Титан победил
-                update_duel_stats(titan['id'], is_winner=True)
-                update_duel_stats(enemy['id'], is_winner=False)
-                del ACTIVE_DUELS[game_id]
-                await callback.message.edit_text(f"🏆 ПОБЕДА!\n\n{log_msg}\n\n💀 {enemy['name']} расщеплен на атомы.", reply_markup=None)
-                await callback.answer()
-                return
-            else:
-                log_msg += f"\n\n💨 {titan['name']} промахивается ультой, врезавшись в Dredgen Sere!"
+                if turns_left > 0:
+                    # Если ходы еще есть — враг стреляет снова
+                    game["log"] = f"{log_msg}\n⏳ Титан все еще в воздухе! Еще 1 выстрел!"
+                    game["turn"] = shooter_id # Ход остается у стрелка
+                else:
+                    # Ходы кончились — Титан приземляется!
+                    titan_id = flying_titan_id
+                    # Определяем объект Титана (кто из них p1/p2)
+                    titan = game["p1"] if game["p1"]["id"] == titan_id else game["p2"]
+                    enemy = game["p1"] if game["p1"]["id"] != titan_id else game["p2"]
+                    
+                    game["pending_crash"] = None # Сброс полета
+                    
+                    # Шанс 17%
+                    if random.randint(1, 100) <= 17:
+                        enemy["hp"] = 0
+                        
+                        update_duel_stats(titan['id'], True)
+                        update_duel_stats(enemy['id'], False)
+                        del ACTIVE_DUELS[game_id]
+                        save_duels()
+                        
+                        final_msg = f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n⚡ <b>БУУМ!</b> {enemy['name']} разлетается на атомы! (-100 HP)"
+                        await callback.message.edit_text(final_msg, reply_markup=None)
+                        await callback.answer()
+                        return
+                    else:
+                        game["log"] = f"{log_msg}\n\n💨 {titan['name']} промахивается ультой и врезается в Dredgen Sere!"
+                        game["turn"] = titan_id # Ход переходит Титану (он приземлился)
 
-        # Если никто не умер — передаем ход
-        game["turn"] = target["id"]
-        game["log"] = log_msg
+        else:
+            # Если никто не летит — просто передаем ход
+            game["turn"] = target["id"]
+            game["log"] = log_msg
         
         await update_duel_message(callback, game_id)
         await callback.answer()
@@ -1105,6 +1123,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
