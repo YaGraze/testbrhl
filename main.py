@@ -161,27 +161,28 @@ class AntiFloodMiddleware(BaseMiddleware):
                 self.flood_cache[user_id] = {'text': text, 'msg_id': event.message_id}
         return await handler(event, data)
 
-# ================= ФУНКЦИИ СТАТИСТИКИ (JSON) =================
-
-# ================= БАЗА ДАННЫХ (SQLite) =================
+# ================= БАЗА ДАННЫХ (SQLite + WAL) =================
 
 # 1. Определяем пути
-# Получаем папку, где лежит main.py
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Задаем путь к папке data
 DATA_DIR = os.path.join(BASE_DIR, "data")
-# Задаем полный путь к файлу БД
 DB_PATH = os.path.join(DATA_DIR, "database.db")
 
-# 2. Создаем папку data, если её нет
+# 2. Создаем папку data
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
-# 3. Подключаемся к БД по новому пути
-conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+# 3. Подключаемся
+conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=10)
+conn.row_factory = sqlite3.Row
 cursor = conn.cursor()
 
-# Создаем таблицу
+# 4. Включаем WAL (надежность)
+cursor.execute("PRAGMA journal_mode=WAL;")
+cursor.execute("PRAGMA synchronous=NORMAL;")
+conn.commit()
+
+# Создаем таблицу ТОЛЬКО для Дуэлей
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         user_id INTEGER PRIMARY KEY,
@@ -196,29 +197,41 @@ conn.commit()
 
 def get_user_data(user_id):
     """Получает статистику игрока"""
-    cursor.execute('SELECT wins, losses, points FROM users WHERE user_id = ?', (user_id,))
-    row = cursor.fetchone()
-    if row:
-        return {'wins': row[0], 'losses': row[1], 'points': row[2]}
-    else:
+    try:
+        cursor.execute('SELECT wins, losses, points FROM users WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        if row:
+            return dict(row)
+        else:
+            return {'wins': 0, 'losses': 0, 'points': 0}
+    except Exception as e:
+        print(f"Ошибка БД (get): {e}")
         return {'wins': 0, 'losses': 0, 'points': 0}
 
 def update_duel_stats(user_id, is_winner):
     """Обновляет очки после дуэли"""
-    cursor.execute('INSERT OR IGNORE INTO users (user_id) VALUES (?)', (user_id,))
-    
-    if is_winner:
-        cursor.execute('UPDATE users SET wins = wins + 1, points = points + 25 WHERE user_id = ?', (user_id,))
-    else:
-        cursor.execute('UPDATE users SET losses = losses + 1, points = MAX(0, points - 10) WHERE user_id = ?', (user_id,))
-    
-    conn.commit()
+    try:
+        cursor.execute('INSERT OR IGNORE INTO users (user_id) VALUES (?)', (user_id,))
+        
+        if is_winner:
+            # Победа: +1 победа, +25 очков
+            cursor.execute('UPDATE users SET wins = wins + 1, points = points + 25 WHERE user_id = ?', (user_id,))
+        else:
+            # Поражение: +1 луз, -10 очков (но не ниже 0)
+            cursor.execute('UPDATE users SET losses = losses + 1, points = MAX(0, points - 10) WHERE user_id = ?', (user_id,))
+        
+        conn.commit()
+    except Exception as e:
+        print(f"Ошибка БД (get): {e}")
+
+def update_stat(user_id, stat_type):
+    """
+    Эта функция нужна, чтобы старый код модерации не выдавал ошибку.
+    Но в БД мы ничего не пишем.
+    """
+    pass 
 
 def get_rank_info(points):
-    """
-    Возвращает (название ранга, сколько очков до следующего).
-    """
-    # Пороги очков: (Порог, Название ТЕКУЩЕГО ранга)
     tiers = [
         (50, "Страж"),
         (150, "Удаль"),
@@ -227,16 +240,11 @@ def get_rank_info(points):
         (1500, "Величие"),
         (float('inf'), "Легенда")
     ]
-    
     for threshold, title in tiers:
         if points < threshold:
             needed = int(threshold - points)
             return title, needed
-            
     return "Легенда", 0
-
-def update_stat(user_id, stat_type):
-    pass 
 
 # ================= ОБЩИЕ ФУНКЦИИ =================
 
@@ -407,7 +415,7 @@ async def duel_command(message: types.Message):
         f"🔴 Претендент: {att_name}\n"
         f"🔵 Цель: {def_name}\n\n"
         f"📜 Правила: 100HP у Стражей,\n"
-        f"🎲 Случайный класс (Хант или Варлок).\n"
+        f"🎲 Классы на выбор:\n"
         f"🔫 - Ханты: Голден Ган + Туз\n"
         f"🔮 - Варлоки: Нова Бомба + Туз\n"
         f"{def_name}, ты принимаешь бой?",
@@ -417,7 +425,9 @@ async def duel_command(message: types.Message):
 async def update_duel_message(callback: types.CallbackQuery, game_id):
     if game_id not in ACTIVE_DUELS:
         await callback.answer("Игра не найдена (перезагрузка бота?)", show_alert=True)
-        try: await callback.message.delete()
+        try: 
+            # Убираем кнопки, но оставляем текст
+            await callback.message.edit_reply_markup(reply_markup=None)
         except: pass
         return
 
@@ -452,16 +462,16 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     if game_class == "hunter":
         buttons = [
             [
-                InlineKeyboardButton(text="🔥 GG (12% / kill)", callback_data="duel_gg"),
-                InlineKeyboardButton(text="♠️ Ace (50% / 25dmg)", callback_data="duel_ace")
+                InlineKeyboardButton(text="🔥 GG (9% / kill)", callback_data="duel_gg"),
+                InlineKeyboardButton(text="♠️ Ace (55% / 25dmg)", callback_data="duel_ace")
             ]
         ]
     else: # warlock
         buttons = [
             [
                 # Общий шанс попадания 40% (15+25)
-                InlineKeyboardButton(text="🟣 Nova (20% / 75dmg/kill)", callback_data="duel_nova"),
-                InlineKeyboardButton(text="♠️ Ace (50% / 25dmg)", callback_data="duel_ace")
+                InlineKeyboardButton(text="🟣 Nova (14% / 75dmg/kill)", callback_data="duel_nova"),
+                InlineKeyboardButton(text="♠️ Ace (55% / 25dmg)", callback_data="duel_ace")
             ]
         ]
 
@@ -478,8 +488,9 @@ async def duel_class_handler(callback: types.CallbackQuery):
     
     # Проверка на существование игры
     if game_id not in ACTIVE_DUELS:
-        await callback.answer("Игра не найдена.", show_alert=True)
-        try: await callback.message.delete()
+        await callback.answer("Матч устарел (Бот перезагружен).", show_alert=True)
+        try: 
+            await callback.message.edit_text("🚫 Матч аннулирован (Кажется, тапир?...).", reply_markup=None)
         except: pass
         return
 
@@ -590,8 +601,9 @@ async def duel_handler(callback: types.CallbackQuery):
         game_id = callback.message.message_id
         
         if game_id not in ACTIVE_DUELS:
-            await callback.answer("Матч не найден.", show_alert=True)
-            try: await callback.message.delete()
+            await callback.answer("Матч устарел (Бот перезагружен).", show_alert=True)
+            try: 
+                await callback.message.edit_text("🚫 Матч аннулирован (Кажется, тапир?...).", reply_markup=None)
             except: pass
             return
 
@@ -631,13 +643,13 @@ async def duel_handler(callback: types.CallbackQuery):
         # --- ЛОГИКА ОРУЖИЯ ---
         if action == "duel_gg":
             weapon_name = "🔥 Голден Ган"
-            if random.randint(1, 100) <= 12: # 12%
+            if random.randint(1, 100) <= 9: # 9%
                 hit = True
                 damage = 100
                 
         elif action == "duel_ace":
             weapon_name = "♠️ Пиковый Туз"
-            if random.randint(1, 100) <= 50: # 50%
+            if random.randint(1, 100) <= 55: # 55%
                 hit = True
                 damage = 25
                 
@@ -648,11 +660,11 @@ async def duel_handler(callback: types.CallbackQuery):
             roll = random.randint(1, 100)
             
             # 1-15: Ваншот (100 урона)
-            if roll <= 10:
+            if roll <= 5:
                 hit = True
                 damage = 100
             # 16-40 (следующие 25%): Урон 70
-            elif roll <= 20:
+            elif roll <= 14:
                 hit = True
                 damage = 75
             # 41-100: Промах
@@ -963,7 +975,7 @@ async def moderate_and_chat(message: types.Message):
         if random.randint(1, 3) == 1:
             try:
                 await message.react([ReactionTypeEmoji(emoji="🤡")])
-            except:
+            except Exception as e:
                 await log_to_owner(f"❌ Ошибка реакции галрейз: {e}")
     
     # --- БАН ---
@@ -975,7 +987,7 @@ async def moderate_and_chat(message: types.Message):
                 msg = await message.answer(f"@{username} улетел в бан. Воздух стал чище.")
                 asyncio.create_task(delete_later(msg, 15))
                 return
-            except:
+            except Exception as e:
                 await log_to_owner(f"❌ Ошибка бана: {e}")
 
     # --- УДАЛЕНИЕ ---
@@ -986,7 +998,7 @@ async def moderate_and_chat(message: types.Message):
                 msg = await message.answer(f"@{username}, рот с мылом помой, у тебя скверна изо рта лезет.")
                 asyncio.create_task(delete_later(msg, 15))
                 return
-            except:
+            except Exception as e:
                 await log_to_owner(f"❌ Ошибка удаления мата: {e}")
 
     # --- ССЫЛКИ ---
@@ -996,7 +1008,7 @@ async def moderate_and_chat(message: types.Message):
             msg = await message.answer(f"@{username}, ссылки на чужие помойки запрещены. Не засоряй сеть Вексов.")
             asyncio.create_task(delete_later(msg, 15))
             return
-        except:
+        except Exception as e:
             await log_to_owner(f"❌ Ошибка удаления ссылки: {e}")
 
     # --- VPN ---
@@ -1079,18 +1091,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
