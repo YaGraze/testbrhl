@@ -425,13 +425,11 @@ async def duel_command(message: types.Message):
 
 async def update_duel_message(callback: types.CallbackQuery, game_id):
     if game_id not in ACTIVE_DUELS:
-        await callback.answer("Игра не найдена.", show_alert=True)
         try: await callback.message.edit_reply_markup(reply_markup=None)
         except: pass
         return
 
     game = ACTIVE_DUELS[game_id]
-    game_class = game.get("class", "hunter")
     
     def get_hp_bar(hp):
         blocks = int(hp / 10) 
@@ -439,162 +437,128 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
 
     p1 = game["p1"]
     p2 = game["p2"]
-    current_turn_name = p1["name"] if game["turn"] == p1["id"] else p2["name"]
+    
+    # Определяем, кто сейчас ходит (объект игрока)
+    current_player = p1 if game["turn"] == p1["id"] else p2
+    current_class = current_player["class"]
+    current_name = current_player["name"]
 
-    # Заголовок
-    if game_class == "hunter":
-        title = "🐍 ДУЭЛЬ НА ХАНТАХ"
-    elif game_class == "warlock":
-        title = "🔮 ДУЭЛЬ НА ВАРЛОКАХ"
-    else:
-        title = "🛡 ДУЭЛЬ НА ТИТАНАХ"
+    # Формируем заголовок (показываем классы игроков)
+    ru_classes = {"hunter": "🐍", "warlock": "🔮", "titan": "🛡"}
+    title = f"{ru_classes[p1['class']]} vs {ru_classes[p2['class']]}"
 
-    # Статус полета (если кто-то летит)
+    # Статус полета Титана
     flying_status = ""
     if game.get("pending_crash"):
-        flying_status = "\n⚡ ТИТАН В ВОЗДУХЕ! ПРИГОТОВИТЬСЯ!"
+        flying_status = "\n⚡ ВРАГ В ВОЗДУХЕ! СБЕЙ ЕГО!"
 
     text = (
-        f"⚔️ ДУЭЛЬ: РАУНД ИДЕТ\n\n"
-        f"🔴 {p1['name']}: {p1['hp']} HP\n"
+        f"⚔️ {title}\n\n"
+        f"🔴 {p1['name']}:{p1['hp']} HP\n"
         f"[{get_hp_bar(p1['hp'])}]\n\n"
         f"🔵 {p2['name']}: {p2['hp']} HP\n"
         f"[{get_hp_bar(p2['hp'])}]\n\n"
-        f"📜 Лог: {game['log']}\n\n"
-        f"👉 Сейчас ходит: {current_turn_name}"
+        f"📜 Лог: {game['log']}{flying_status}\n\n"
+        f"👉 Ход: {current_name} ({ru_classes[current_class]})"
     )
 
-    # Кнопки
-    if game_class == "hunter":
+    # ГЕНЕРИРУЕМ КНОПКИ ДЛЯ ТОГО, ЧЕЙ СЕЙЧАС ХОД
+    buttons = []
+    
+    if current_class == "hunter":
         buttons = [
-            [InlineKeyboardButton(text="🔥 GG (9%)", callback_data="duel_gg"),
-             InlineKeyboardButton(text="♠️ Ace (55%)", callback_data="duel_ace")]
+            [InlineKeyboardButton(text="🔥 GG (12% / kill)", callback_data="duel_gg"),
+             InlineKeyboardButton(text="♠️ Ace (55% / 25dmg)", callback_data="duel_ace")]
         ]
-    elif game_class == "warlock":
+    elif current_class == "warlock":
         buttons = [
-            [InlineKeyboardButton(text="🟣 Nova (14%)", callback_data="duel_nova"),
-             InlineKeyboardButton(text="♠️ Ace (55%)", callback_data="duel_ace")]
+            [InlineKeyboardButton(text="🟣 Nova (14% / 75dmg/kill)", callback_data="duel_nova"),
+             InlineKeyboardButton(text="♠️ Ace (55% / 25dmg)", callback_data="duel_ace")]
         ]
-    else: # Titan
+    elif current_class == "titan":
+        # Если титан уже летит, кнопку полета блокировать не обязательно (мы блочим в логике),
+        # но можно визуально убрать. Оставим пока как есть.
         buttons = [
-            [InlineKeyboardButton(text="⚡ Crash (12% & Delay)", callback_data="duel_crash"),
-             InlineKeyboardButton(text="♠️ Ace (55%)", callback_data="duel_ace")]
+            [InlineKeyboardButton(text="⚡ Crash (17% / Delay)", callback_data="duel_crash"),
+             InlineKeyboardButton(text="♠️ Ace (55% / 25dmg)", callback_data="duel_ace")]
         ]
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
     try:
         await callback.message.edit_text(text, reply_markup=keyboard)
     except Exception:
         pass
 
-# --- ОБРАБОТКА ВЫБОРА КЛАССА ---
-@dp.callback_query(F.data.startswith("duel_set_"))
+# --- ОБРАБОТКА ВЫБОРА КЛАССА (ДЛЯ ДВОИХ) ---
+@dp.callback_query(F.data.startswith("duel_pick_"))
 async def duel_class_handler(callback: types.CallbackQuery):
     game_id = callback.message.message_id
     
     if game_id not in ACTIVE_DUELS:
         await callback.answer("Матч устарел.", show_alert=True)
-        try: await callback.message.edit_text("🚫 Матч аннулирован (Кажется, тапир?...)", reply_markup=None)
+        try: await callback.message.edit_text("🚫 Матч аннулирован. (Кажется, тапир?...)", reply_markup=None)
         except: pass
         return
 
     game = ACTIVE_DUELS[game_id]
-    
-    if callback.from_user.id != game["chooser"]:
-        await callback.answer("Не ты выбираешь класс!", show_alert=True)
-        return
-
+    user_id = callback.from_user.id
     choice = callback.data.split("_")[2]
-    
-    if choice == "random":
-        final_class = random.choice(["hunter", "warlock", "titan"])
+
+    # Определяем, кто нажал (Игрок 1 или Игрок 2)
+    player = None
+    if user_id == game["p1"]["id"]:
+        player = "p1"
+    elif user_id == game["p2"]["id"]:
+        player = "p2"
     else:
-        final_class = choice
-
-    game["class"] = final_class
-    game["state"] = "fighting"
-    
-    class_names = {"hunter": "Хантеров", "warlock": "Варлоков", "titan": "Титанов"}
-    game["log"] = f"Выбран класс {class_names[final_class]}! Бой начинается!"
-
-    await update_duel_message(callback, game_id)
-    await callback.answer()
-
-@dp.callback_query(F.data.startswith("duel_"))
-async def duel_handler(callback: types.CallbackQuery):
-    data_parts = callback.data.split("|")
-    action = data_parts[0]
-    
-    if action == "duel_decline":
-        defender_id = int(data_parts[2])
-        if callback.from_user.id != defender_id:
-            await callback.answer("Не лезь, это не твой бой!", show_alert=True)
-            return
-        await callback.message.edit_text(f"🏳️ Дуэль отменена. Соперник сбежал на орбиту.")
+        await callback.answer("Ты не участвуешь в дуэли!", show_alert=True)
         return
 
-    # --- СТАРТ (ОПРЕДЕЛЕНИЕ ОЧЕРЕДИ И ВЫБОР КЛАССА) ---
-    if action == "duel_start":
-        attacker_id = int(data_parts[1])
-        defender_id = int(data_parts[2])
-        if callback.from_user.id != defender_id:
-            await callback.answer("Жди решения соперника!", show_alert=True)
-            return
+    # Если уже выбрал - ругаем
+    if game[player]["class"] is not None:
+        await callback.answer("Ты уже выбрал класс!", show_alert=True)
+        return
 
-        game_id = callback.message.message_id
+    # Записываем выбор
+    real_choice = choice
+    if choice == "random":
+        real_choice = random.choice(["hunter", "warlock", "titan"])
+    
+    game[player]["class"] = real_choice
+    
+    # Обновляем текст (показываем галочки)
+    p1_status = "✅ Готов" if game["p1"]["class"] else "Ожидание..."
+    p2_status = "✅ Готов" if game["p2"]["class"] else "Ожидание..."
+    
+    # Если ОБА выбрали — начинаем бой
+    if game["p1"]["class"] and game["p2"]["class"]:
+        game["state"] = "fighting"
+        # Рандомно выбираем, кто первый
+        game["turn"] = random.choice([game["p1"]["id"], game["p2"]["id"]])
         
-        # Получаем имена
-        try:
-            att_m = await bot.get_chat_member(callback.message.chat.id, attacker_id)
-            def_m = await bot.get_chat_member(callback.message.chat.id, defender_id)
-            att_name = f"@{att_m.user.username}" if att_m.user.username else att_m.user.first_name
-            def_name = f"@{def_m.user.username}" if def_m.user.username else def_m.user.first_name
-        except:
-            att_name, def_name = "Игрок 1", "Игрок 2"
-
-        # 1. Кидаем монетку: кто стреляет первым?
-        first_shooter_id = random.choice([attacker_id, defender_id])
+        # Красивые названия для лога
+        ru_classes = {"hunter": "Хантер", "warlock": "Варлок", "titan": "Титан"}
+        c1 = ru_classes[game["p1"]["class"]]
+        c2 = ru_classes[game["p2"]["class"]]
         
-        # 2. Тот, кто НЕ стреляет первым — выбирает класс
-        class_chooser_id = defender_id if first_shooter_id == attacker_id else attacker_id
-        
-        # Имя выбирающего для текста
-        chooser_name = def_name if class_chooser_id == defender_id else att_name
-        shooter_name = att_name if first_shooter_id == attacker_id else def_name
-
-        # Сохраняем промежуточное состояние
-        ACTIVE_DUELS[game_id] = {
-            "p1": {"id": attacker_id, "name": att_name, "hp": 100},
-            "p2": {"id": defender_id, "name": def_name, "hp": 100},
-            "turn": first_shooter_id,     # Кто будет стрелять
-            "chooser": class_chooser_id,  # Кто выбирает класс сейчас
-            "state": "choosing_class",    # Статус игры
-            "log": "🗣 Шакс: Очередь определена! Выбирайте снаряжение."
-        }
-
-        # Меню выбора класса
-        buttons = [
-            [
-                InlineKeyboardButton(text="🐍 Хантеры", callback_data="duel_set_hunter"),
-                InlineKeyboardButton(text="🔮 Варлоки", callback_data="duel_set_warlock"),
-                InlineKeyboardButton(text="🛡 Титаны", callback_data="duel_set_titan")
-            ],
-            [
-                InlineKeyboardButton(text="🎲 Рандом", callback_data="duel_set_random")
-            ]
-        ]
-        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-
+        game["log"] = f"⚔️ {c1} vs {c2}! Бой начинается!"
+        save_duels()
+        await update_duel_message(callback, game_id)
+    else:
+        # Иначе просто обновляем сообщение
         text = (
-            f"⚖️ БАЛАНС СИЛ\n\n"
-            f"🔫 Первый ход: {shooter_name}\n"
-            f"🗳 Выбор класса: {chooser_name}\n\n"
-            f"{chooser_name}, выбирай, на чем будете драться!"
+            f"🗳 ВЫБОР КЛАССОВ\n\n"
+            f"👤 {game['p1']['name']}: {p1_status}\n"
+            f"👤 {game['p2']['name']}: {p2_status}\n\n"
+            f"Ждем второго игрока..."
         )
-
-        await callback.message.edit_text(text, reply_markup=keyboard)
-        await callback.answer()
-        return
+        # Клавиатуру оставляем ту же
+        current_kb = callback.message.reply_markup
+        try: await callback.message.edit_text(text, reply_markup=current_kb)
+        except: pass
+        
+    await callback.answer()
 
     # --- ВЫСТРЕЛ ---
     if action in ["duel_gg", "duel_ace", "duel_nova", "duel_crash"]:
@@ -602,26 +566,47 @@ async def duel_handler(callback: types.CallbackQuery):
         
         if game_id not in ACTIVE_DUELS:
             await callback.answer("Матч устарел.", show_alert=True)
-            try: await callback.message.edit_text("🚫 Матч аннулирован (Кажется, тапир?...)", reply_markup=None)
+            try: await callback.message.edit_text("🚫 <b>Матч аннулирован</b>", reply_markup=None)
             except: pass
             return
 
         game = ACTIVE_DUELS[game_id]
         
-        if game.get("state") == "choosing_class":
-            await callback.answer("Сначала выберите класс!", show_alert=True)
+        if game.get("state") != "fighting":
+            await callback.answer("Бой еще не начался!", show_alert=True)
             return
 
-        # Проверка классов
-        if game["class"] == "hunter" and action in ["duel_nova", "duel_crash"]:
-            await callback.answer("Ты Хантер! Не то оружие.", show_alert=True)
+        # Запрет на встречный полет (Титан)
+        if game.get("pending_crash") and action == "duel_crash":
+            await callback.answer("Противник в воздухе! Стреляй!", show_alert=True)
             return
-        if game["class"] == "warlock" and action in ["duel_gg", "duel_crash"]:
-            await callback.answer("Ты Варлок! Не то оружие.", show_alert=True)
+
+        shooter_id = callback.from_user.id
+
+        if shooter_id != game["turn"]:
+            await callback.answer("Сейчас не твой ход!", show_alert=True)
             return
-        if game["class"] == "titan" and action in ["duel_gg", "duel_nova"]:
-            await callback.answer("Ты Титан! Не то оружие.", show_alert=True)
-            return
+
+        # Определяем участников
+        if shooter_id == game["p1"]["id"]:
+            shooter = game["p1"]
+            target = game["p2"]
+        else:
+            shooter = game["p2"]
+            target = game["p1"]
+
+        # ПРОВЕРКА КЛАССА ИГРОКА
+        my_class = shooter["class"]
+        
+        if my_class == "hunter" and action not in ["duel_gg", "duel_ace"]:
+            await callback.answer("Это не твое оружие!", show_alert=True); return
+            
+        if my_class == "warlock" and action not in ["duel_nova", "duel_ace"]:
+            await callback.answer("Это не твое оружие!", show_alert=True); return
+            
+        if my_class == "titan" and action not in ["duel_crash", "duel_ace"]:
+            await callback.answer("Это не твое оружие!", show_alert=True); return
+       
         if game.get("pending_crash") and action == "duel_crash":
             await callback.answer("Противник в воздухе! Сбей его, а не улетай сам!", show_alert=True)
             return
@@ -1126,6 +1111,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
