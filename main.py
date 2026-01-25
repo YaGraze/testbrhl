@@ -350,14 +350,14 @@ async def stats_command(message: types.Message):
     
     text = (
         f"📊 ДОСЬЕ ГОРНИЛА: {du}\n"
-        f"━━━━━━━━━━━━━━━━━━\n"
+        f"━━━━━━━━━━━━━━━━━\n"
         f"🏆 Ранг: {rank_title} ({points} очков)\n"
         f"{next_rank_str}\n"
         f"⚔️ Матчей: {total_games}\n"
         f"✅ Побед: {wins}\n"
         f"❌ Поражений: {losses}\n"
         f"📈 Винрейт: {winrate}%\n"
-        f"━━━━━━━━━━━━━━━━━━\n"
+        f"━━━━━━━━━━━━━━━━━\n"
         f"Шакс наблюдает за тобой."
     )
     
@@ -477,7 +477,7 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
         ]
     else: # Titan
         buttons = [
-            [InlineKeyboardButton(text="⚡ Crash (15% & Delay)", callback_data="duel_crash"),
+            [InlineKeyboardButton(text="⚡ Crash (12% & Delay)", callback_data="duel_crash"),
              InlineKeyboardButton(text="♠️ Ace (55%)", callback_data="duel_ace")]
         ]
 
@@ -494,7 +494,7 @@ async def duel_class_handler(callback: types.CallbackQuery):
     
     if game_id not in ACTIVE_DUELS:
         await callback.answer("Матч устарел.", show_alert=True)
-        try: await callback.message.edit_text("🚫 Матч аннулирован", reply_markup=None)
+        try: await callback.message.edit_text("🚫 Матч аннулирован (Кажется, тапир?...)", reply_markup=None)
         except: pass
         return
 
@@ -602,7 +602,7 @@ async def duel_handler(callback: types.CallbackQuery):
         
         if game_id not in ACTIVE_DUELS:
             await callback.answer("Матч устарел.", show_alert=True)
-            try: await callback.message.edit_text("🚫 Матч аннулирован", reply_markup=None)
+            try: await callback.message.edit_text("🚫 Матч аннулирован (Кажется, тапир?...)", reply_markup=None)
             except: pass
             return
 
@@ -697,7 +697,7 @@ async def duel_handler(callback: types.CallbackQuery):
             game["pending_crash"] = None # Сбрасываем статус
             
             # Шанс попадания ультой 15%
-            crash_hit = random.randint(1, 100) <= 15
+            crash_hit = random.randint(1, 100) <= 12
             
             if crash_hit:
                 enemy["hp"] = 0 # Ваншот
@@ -1105,6 +1105,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
