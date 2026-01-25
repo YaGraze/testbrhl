@@ -622,7 +622,10 @@ async def duel_handler(callback: types.CallbackQuery):
         if game["class"] == "titan" and action in ["duel_gg", "duel_nova"]:
             await callback.answer("Ты Титан! Не то оружие.", show_alert=True)
             return
-
+        if game.get("pending_crash") and action == "duel_crash":
+            await callback.answer("Противник в воздухе! Сбей его, а не улетай сам!", show_alert=True)
+            return
+        
         shooter_id = callback.from_user.id
 
         if shooter_id != game["turn"]:
@@ -1123,6 +1126,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
