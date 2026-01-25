@@ -543,7 +543,6 @@ async def duel_class_handler(callback: types.CallbackQuery):
         c2 = ru_classes[game["p2"]["class"]]
         
         game["log"] = f"⚔️ {c1} vs {c2}! Бой начинается!"
-        save_duels()
         await update_duel_message(callback, game_id)
     else:
         # Иначе просто обновляем сообщение
@@ -598,7 +597,6 @@ async def duel_handler(callback: types.CallbackQuery):
             "state": "choosing_classes",
             "log": "Ожидание выбора классов..."
         }
-        save_duels()
 
         # Меню выбора для ОБОИХ
         buttons = [
@@ -695,7 +693,6 @@ async def duel_handler(callback: types.CallbackQuery):
             
             game["log"] = f"⚡ ГРОМ! {shooter['name']} взмывает в воздух! У {target['name']} есть 2 выстрела!"
             
-            save_duels()
             await update_duel_message(callback, game_id)
             await callback.answer()
             return
@@ -770,7 +767,6 @@ async def duel_handler(callback: types.CallbackQuery):
                         update_duel_stats(titan['id'], True)
                         update_duel_stats(enemy['id'], False)
                         del ACTIVE_DUELS[game_id]
-                        save_duels()
                         
                         final_msg = f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n⚡ <b>БУУМ!</b> {enemy['name']} разлетается на атомы! (-100 HP)"
                         await callback.message.edit_text(final_msg, reply_markup=None)
@@ -1173,6 +1169,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
