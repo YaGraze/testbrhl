@@ -122,9 +122,6 @@ ALLOWED_DOMAINS = ["youtube.com", "youtu.be", "google.com", "yandex.ru", "github
 LINK_RULES = "https://telegra.ph/Pravila-kanala-i-chata-09-18" 
 LINK_CHAT = "https://t.me/+Uaa0ALuvIfs1MzYy" 
 
-genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash') 
-
 AI_SYSTEM_PROMPT = (
     "Ты — дерзкий Призрак-модератор чата по Destiny 2. "
     "Твоя задача — подкалывать Стражей (пользователей), используя сленг игры "
@@ -1179,6 +1176,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
