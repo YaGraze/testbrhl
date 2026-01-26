@@ -17,7 +17,7 @@ from openai import AsyncOpenAI
 # ================= НАСТРОЙКИ =================
 
 BOT_TOKEN = "8232116536:AAGxh1GYvkbzGA-pA-2_3XVu9UTsCuFIDjw"
-OPENAI_API_KEY = "sk-k61nl1lRJyZeeP2FTqN4qw" 
+OPENAI_API_KEY = "sk-VceymhbQITrkT8qoYFshaQ" 
 
 BOT_GUIDE = "https://telegra.ph/Baraholka-Bot-01-22"
 LINK_TAPIR_GUIDE = "https://t.me/destinygoods/9814" 
@@ -1148,12 +1148,12 @@ async def moderate_and_chat(message: types.Message):
             
             # Отправка запроса в DeepSeek
             response = await client.chat.completions.create(
-                model="gpt-4o-mini", # Или "gpt-4o" (дороже, но умнее)
+                model="llama-3.1-sonar-large-128k-online", # Или "gpt-4o" (дороже, но умнее)
                 messages=[
                     {"role": "system", "content": AI_SYSTEM_PROMPT},
                     {"role": "user", "content": clean_text}
                 ],
-                temperature=2, # Креативность (0.0 - робот, 2.0 - безумие)
+                temperature=0.8, # Креативность (0.0 - робот, 2.0 - безумие)
                 max_tokens=600
             )
             
@@ -1183,6 +1183,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
