@@ -135,7 +135,7 @@ AI_SYSTEM_PROMPT = (
 
 client = AsyncOpenAI(
     api_key=DEEPSEEK_API_KEY, 
-    base_url="https://api.deepseek.com"
+    base_url="https://api.artemox.com/v1"
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -1179,6 +1179,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
