@@ -1162,7 +1162,7 @@ async def moderate_and_chat(message: types.Message):
             ai_msg = await message.reply(ai_reply)
             
             # 2. Запускаем таймер на удаление через 60 секунд
-            asyncio.create_task(delete_later(ai_msg, 60))
+            asyncio.create_task(delete_later(ai_msg, 600))
             
         except Exception as e:
             await log_to_owner(f"❌ Ошибка DeepSeek AI: {e}")
@@ -1183,6 +1183,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
