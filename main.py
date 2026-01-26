@@ -1148,7 +1148,7 @@ async def moderate_and_chat(message: types.Message):
             
             # Отправка запроса в DeepSeek
             response = await client.chat.completions.create(
-                model="sonar-pro", # Или "gpt-4o" (дороже, но умнее)
+                model="sonar", # Или "gpt-4o" (дороже, но умнее)
                 messages=[
                     {"role": "system", "content": AI_SYSTEM_PROMPT},
                     {"role": "user", "content": clean_text}
@@ -1183,6 +1183,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
