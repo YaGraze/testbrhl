@@ -1151,13 +1151,13 @@ async def moderate_and_chat(message: types.Message):
             
             # Отправка запроса в DeepSeek
             response = await client.chat.completions.create(
-                model="gpt-4o", # Или "gpt-4o" (дороже, но умнее)
+                model="gpt-4o-mini", # Или "gpt-4o" (дороже, но умнее)
                 messages=[
                     {"role": "system", "content": AI_SYSTEM_PROMPT},
                     {"role": "user", "content": clean_text}
                 ],
                 temperature=0.7 # Креативность (0.0 - робот, 2.0 - безумие)
-                max_tokens=1000
+                max_tokens=200
             )
             
             ai_reply = response.choices[0].message.content
@@ -1182,6 +1182,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
