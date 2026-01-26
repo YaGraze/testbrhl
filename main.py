@@ -17,7 +17,7 @@ from openai import AsyncOpenAI
 # ================= НАСТРОЙКИ =================
 
 BOT_TOKEN = "8232116536:AAGxh1GYvkbzGA-pA-2_3XVu9UTsCuFIDjw"
-DEEPSEEK_API_KEY = "sk-IVUrLTLu6CjWdtzRKBPrkQ"
+OPENAI_API_KEY = "sk-k61nl1lRJyZeeP2FTqN4qw" 
 
 BOT_GUIDE = "https://telegra.ph/Baraholka-Bot-01-22"
 LINK_TAPIR_GUIDE = "https://t.me/destinygoods/9814" 
@@ -137,7 +137,7 @@ AI_SYSTEM_PROMPT = (
 )
 
 client = AsyncOpenAI(
-    api_key=DEEPSEEK_API_KEY, 
+    api_key=OPENAI_API_KEY, 
     base_url="https://api.artemox.com/v1"
 )
 
@@ -1151,13 +1151,12 @@ async def moderate_and_chat(message: types.Message):
             
             # Отправка запроса в DeepSeek
             response = await client.chat.completions.create(
-                model="deepseek-chat", # Используем модель V3
+                model="gpt-4o-mini", # Или "gpt-4o" (дороже, но умнее)
                 messages=[
                     {"role": "system", "content": AI_SYSTEM_PROMPT},
                     {"role": "user", "content": clean_text}
                 ],
-                max_tokens=500, # Ограничение длины ответа
-                temperature=1.3 # Высокая креативность для дерзости
+                temperature=1.0 # Креативность (0.0 - робот, 2.0 - безумие)
             )
             
             ai_reply = response.choices[0].message.content
@@ -1182,6 +1181,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
