@@ -30,6 +30,7 @@ ACTIVE_DUELS = {}
 USER_STATS = {} # Загружается из файла
 PROCESSED_ALBUMS = []
 LAST_MESSAGE_TIME = datetime.now()
+AI_COOLDOWN_TIME = datetime.now()
 
 ADMIN_CHAT_ID = -1003376406623 
 CHAT_ID = -1002129048580
@@ -1131,47 +1132,59 @@ async def moderate_and_chat(message: types.Message):
             await message.reply(f"⚠️ Не могу отправить стикер. Ошибка:\n{e}")
         return
 
-    # --- ИИ (DEEPSEEK) ---
+    # --- ИИ (ТОЛЬКО ПО ТЕГУ + КУЛДАУН) ---
     bot_info = await bot.get_me()
-    is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == bot.id
+    
+    # Проверяем, есть ли тег бота в сообщении
     is_mention = f"@{bot_info.username}" in message.text
 
-    if is_reply_to_bot or is_mention:
+    # Реагируем ТОЛЬКО если есть тег (реплаи игнорируем)
+    if is_mention:
         clean_text = message.text.replace(f"@{bot_info.username}", "").strip()
+        
         if not clean_text:
-            msg = await message.answer("Ну и для чего ты меня тегнул?")
-            asyncio.create_task(delete_later(msg, 15))
+            msg = await message.answer("Чего звал? Пиши вопрос сразу.")
+            asyncio.create_task(delete_later(msg, 5))
             return
 
+        # ПРОВЕРКА КУЛДАУНА
+        global AI_COOLDOWN_TIME
+        now = datetime.now()
+        
+        if now < AI_COOLDOWN_TIME:
+            time_left = AI_COOLDOWN_TIME - now
+            minutes_left = int(time_left.total_seconds() // 60) + 1
+            
+            msg = await message.reply(
+                f"Я сейчас занят, лайт поднимаю в портале. "
+                f"Обратись ко мне через {minutes_left} мин, когда курить пойду."
+            )
+            asyncio.create_task(delete_later(msg, 5))
+            return
+
+        # ЗАПРОС К ИИ
         try:
             await bot.send_chat_action(message.chat.id, action="typing")
             
-            # Отправка запроса в DeepSeek
             response = await client.chat.completions.create(
-                model="sonar", # Или "gpt-4o" (дороже, но умнее)
+                model="sonar",
                 messages=[
                     {"role": "system", "content": AI_SYSTEM_PROMPT},
                     {"role": "user", "content": clean_text}
                 ],
-                temperature=0.8, # Креативность (0.0 - робот, 2.0 - безумие)
+                temperature=0.8,
                 max_tokens=200
             )
             
             ai_reply = response.choices[0].message.content
-            # 1. Отправляем и запоминаем сообщение в переменную
-            ai_msg = await message.reply(ai_reply)
+            await message.reply(ai_reply)
             
-            # 2. Запускаем таймер на удаление через 60 секунд
-            asyncio.create_task(delete_later(ai_msg, 600))
+            # Ставим КД 10 минут
+            AI_COOLDOWN_TIME = datetime.now() + timedelta(minutes=10)
             
         except Exception as e:
-            await log_to_owner(f"❌ Ошибка DeepSeek AI: {e}")
-            # Клавиатура с гайдом (если ошибка)
-            error_kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🔧 Гайд по боту", url=BOT_GUIDE)]
-            ])
-            msg = await message.reply("Пообщайся с кем-нибудь другим, я чиллю.", reply_markup=error_kb)
-            asyncio.create_task(delete_later(msg, 5))
+            await log_to_owner(f"❌ Ошибка ИИ: {e}")
+            # Если ошибка — не отвечаем пользователю, чтобы не спамить
             
 # ================= ЗАПУСК =================
 
@@ -1183,6 +1196,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
