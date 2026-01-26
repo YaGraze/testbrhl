@@ -1154,7 +1154,7 @@ async def moderate_and_chat(message: types.Message):
                     {"role": "user", "content": clean_text}
                 ],
                 temperature=0.8, # Креативность (0.0 - робот, 2.0 - безумие)
-                max_tokens=600
+                max_tokens=200
             )
             
             ai_reply = response.choices[0].message.content
@@ -1183,6 +1183,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
