@@ -1153,12 +1153,16 @@ async def moderate_and_chat(message: types.Message):
                     {"role": "system", "content": AI_SYSTEM_PROMPT},
                     {"role": "user", "content": clean_text}
                 ],
-                temperature=0.7 # Креативность (0.0 - робот, 2.0 - безумие)
-                max_tokens=200
+                temperature=0.7, # Креативность (0.0 - робот, 2.0 - безумие)
+                max_tokens=600
             )
             
             ai_reply = response.choices[0].message.content
-            await message.reply(ai_reply)
+            # 1. Отправляем и запоминаем сообщение в переменную
+            ai_msg = await message.reply(ai_reply)
+            
+            # 2. Запускаем таймер на удаление через 60 секунд
+            asyncio.create_task(delete_later(ai_msg, 60))
             
         except Exception as e:
             await log_to_owner(f"❌ Ошибка DeepSeek AI: {e}")
@@ -1179,6 +1183,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
