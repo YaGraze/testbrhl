@@ -1170,8 +1170,8 @@ async def moderate_and_chat(message: types.Message):
             error_kb = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="🔧 Гайд по боту", url=BOT_GUIDE)]
             ])
-            msg = await message.reply("Мозги перегрелись (ошибка API).", reply_markup=error_kb)
-            asyncio.create_task(delete_later(msg, 15))
+            msg = await message.reply("Пообщайся с кем-нибудь другим, я чиллю.", reply_markup=error_kb)
+            asyncio.create_task(delete_later(msg, 5))
             
 # ================= ЗАПУСК =================
 
@@ -1183,6 +1183,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
