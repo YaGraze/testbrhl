@@ -16,7 +16,7 @@ from openai import AsyncOpenAI
 
 # ================= НАСТРОЙКИ =================
 
-BOT_TOKEN = "232116536:AAGxh1GYvkbzGA-pA-2_3XVu9UTsCuFIDjw""
+BOT_TOKEN = "232116536:AAGxh1GYvkbzGA-pA-2_3XVu9UTsCuFIDjw"
 OPENAI_API_KEY = "sk-Vadfa" 
 
 BOT_GUIDE = "https://telegra.ph/Baraholka-Bot-01-22"
@@ -1548,6 +1548,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
