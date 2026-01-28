@@ -776,10 +776,13 @@ async def duel_handler(callback: types.CallbackQuery):
         await callback.answer()
         return
 
-    # --- БАФФЫ (АБИЛКИ) ---
+        # --- БАФФЫ (АБИЛКИ) ---
     if action in ["duel_buff_radiant", "duel_buff_devour", "duel_buff_amplify"]:
         game_id = callback.message.message_id
-        if game_id not in ACTIVE_DUELS: return
+        if game_id not in ACTIVE_DUELS:
+            await callback.answer("Игра не найдена.", show_alert=True)
+            return
+        
         game = ACTIVE_DUELS[game_id]
         
         # Проверка хода
@@ -787,20 +790,23 @@ async def duel_handler(callback: types.CallbackQuery):
             await callback.answer("Не твой ход!", show_alert=True)
             return
 
-        # Кто жмет?
+        # Определяем кто есть кто
         if callback.from_user.id == game["p1"]["id"]:
-            caster, enemy = game["p1"], game["p2"]
+            caster = game["p1"]
+            enemy = game["p2"]
         else:
-            caster, enemy = game["p2"], game["p1"]
+            caster = game["p2"]
+            enemy = game["p1"]
 
         # Логика абилок
         buff_name = ""
+        log_msg = ""
         
         if action == "duel_buff_radiant": # Хант
             if caster["class"] != "hunter": return
             caster["buff_dmg"] = 10
             buff_name = "🔥 Сияние"
-            log_msg = f"{caster['name']} активирует <b>Сияние</b>! След. попадание +10 урона."
+            log_msg = f"{caster['name']} активирует <b>Сияние</b>! След. выстрел +10 урона."
 
         elif action == "duel_buff_devour": # Варлок
             if caster["class"] != "warlock": return
@@ -814,8 +820,41 @@ async def duel_handler(callback: types.CallbackQuery):
             buff_name = "🛡 Усиление"
             log_msg = f"{caster['name']} получает <b>Усиление</b>! След. урон по нему снижен на 10."
 
-        # Передача хода
-        game["turn"] = enemy["id"]
+        # ЛОГИКА ТИТАНА (Если враг летит)
+        flying_titan_id = game.get("pending_crash")
+        
+        if flying_titan_id:
+            game["crash_turns"] -= 1
+            
+            if game["crash_turns"] <= 0:
+                # Титан приземляется!
+                titan_id = flying_titan_id
+                titan = game["p1"] if game["p1"]["id"] == titan_id else game["p2"]
+                
+                game["pending_crash"] = None
+                
+                # Шанс 17%
+                if random.randint(1, 100) <= 17:
+                    caster["hp"] = 0 # Ты умер
+                    update_duel_stats(titan['id'], True)
+                    update_duel_stats(caster['id'], False)
+                    del ACTIVE_DUELS[game_id]
+                    
+                    msg = f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n⚡ <b>БАБАХ!</b> {titan['name']} приземляется на тебя! (-100 HP)"
+                    await callback.message.edit_text(msg, reply_markup=None)
+                    await callback.answer()
+                    return
+                else:
+                    log_msg += f"\n\n💨 {titan['name']} промахивается ультой при посадке!"
+                    game["turn"] = titan_id
+            else:
+                log_msg += "\n⏳ Титан летит! Остался 1 ход!"
+                game["turn"] = caster["id"] # Ход остается у тебя
+        
+        else:
+            # Обычная передача хода
+            game["turn"] = enemy["id"]
+
         game["log"] = log_msg
         
         await update_duel_message(callback, game_id)
@@ -1013,51 +1052,6 @@ async def duel_handler(callback: types.CallbackQuery):
             await callback.message.edit_text(f"<b>🏆 ПОБЕДА!</b>\n\n{log_msg}\n\n💀 {target['name']} повержен.", reply_markup=None)
             await callback.answer()
             return
-
-        # ПРОВЕРКА: Если противник (Титан) сейчас летит
-        flying_titan_id = game.get("pending_crash")
-        
-        if flying_titan_id:
-            # Мы потратили ход на бафф -> Титан приближается
-            game["crash_turns"] -= 1
-            
-            if game["crash_turns"] <= 0:
-                # ВРЕМЯ ВЫШЛО -> Титан приземляется и бьет!
-                titan_id = flying_titan_id
-                titan = game["p1"] if game["p1"]["id"] == titan_id else game["p2"]
-                
-                game["pending_crash"] = None
-                
-                # Шанс попадания Краша (22%)
-                if random.randint(1, 100) <= 22:
-                    caster["hp"] = 0 # Ты умер, пока баффался
-                    update_duel_stats(titan['id'], True)
-                    update_duel_stats(caster['id'], False)
-                    del ACTIVE_DUELS[game_id]
-                    
-                    msg = f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n⚡ <b>БУУУМ!</b> {titan['name']} размазывает соперника! (-100 HP)"
-                    await callback.message.edit_text(msg, reply_markup=None)
-                    await callback.answer()
-                    return
-                else:
-                    log_msg += f"\n\n💨 {titan['name']} промахивается ультой при посадке!"
-                    game["turn"] = titan_id # Ход переходит Титану
-            else:
-                # Ходы еще есть -> Ты можешь сделать еще действие (или Титан все еще летит)
-                # По правилам "2 хода на сбитие", если ты баффнулся 1 раз, у тебя остался 1 шанс выстрелить.
-                # Ход остается у ТЕБЯ.
-                log_msg += "\n⏳ Титан все еще в воздухе! У тебя остался 1 шанс!"
-                game["turn"] = caster["id"]
-        
-        else:
-            # Обычная ситуация (никто не летит) -> Ход переходит врагу
-            game["turn"] = enemy["id"]
-
-        game["log"] = log_msg
-        
-        await update_duel_message(callback, game_id)
-        await callback.answer(f"{buff_name} активировано!")
-        return
 
 # --- РЕПОРТ ---
 @dp.message(Command("report"))
@@ -1545,6 +1539,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
