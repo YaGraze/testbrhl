@@ -554,9 +554,9 @@ async def duel_command(message: types.Message):
         f"<b>🔴 Страж №1:</b> {att_name}\n"
         f"<b>🔵 Страж №2:</b> {def_name}\n\n"
         f"<b>📜 Сетапы классов:</b>\n"
-        f"🔫 - Ханты: Голден Ган + Туз\n"
-        f"🔮 - Варлоки: Нова Бомба + Туз\n"
-        f"☄️ - Титаны: Тандеркраш + Туз\n\n"
+        f"🔫 - Ханты: ГГ/Туз/Сияние\n"
+        f"🔮 - Варлоки: Нова/Туз/Пожирание\n"
+        f"☄️ - Титаны: ТКраш/Туз/Усиление\n\n"
         f"<b>{def_name}</b>, ты принимаешь бой?",
         reply_markup=keyboard
     )
@@ -608,26 +608,26 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     if current_class == "hunter":
         buttons = [
             [
-                InlineKeyboardButton(text="♠️ Ace", callback_data="duel_ace"),
+                InlineKeyboardButton(text="♠️ Ace (50%)", callback_data="duel_ace"),
                 InlineKeyboardButton(text="🔥 Сияние (+Dmg)", callback_data="duel_buff_radiant")
             ],
-            [InlineKeyboardButton(text="🔫 Golden Gun (12%)", callback_data="duel_gg")]
+            [InlineKeyboardButton(text="🔫 Golden Gun (9%)", callback_data="duel_gg")]
         ]
     elif current_class == "warlock":
         buttons = [
             [
-                InlineKeyboardButton(text="♠️ Ace", callback_data="duel_ace"),
+                InlineKeyboardButton(text="♠️ Ace (50%)", callback_data="duel_ace"),
                 InlineKeyboardButton(text="🌀 Пожирание (+Heal)", callback_data="duel_buff_devour")
             ],
-            [InlineKeyboardButton(text="🟣 Nova Bomb (40%)", callback_data="duel_nova")]
+            [InlineKeyboardButton(text="🟣 Nova Bomb (14%)", callback_data="duel_nova")]
         ]
     elif current_class == "titan":
         buttons = [
             [
-                InlineKeyboardButton(text="♠️ Ace", callback_data="duel_ace"),
+                InlineKeyboardButton(text="♠️ Ace (50%)", callback_data="duel_ace"),
                 InlineKeyboardButton(text="🛡 Усиление (-SelfDmg)", callback_data="duel_buff_amplify")
             ],
-            [InlineKeyboardButton(text="⚡ Thundercrash (17%)", callback_data="duel_crash")]
+            [InlineKeyboardButton(text="⚡ Thundercrash (22%)", callback_data="duel_crash")]
         ]
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -928,7 +928,7 @@ async def duel_handler(callback: types.CallbackQuery):
             streak = shooter.get("ace_streak", 0)
             
             # База 55%
-            base_chance = 55
+            base_chance = 50
             crit_chance = 0
             
             # Если есть заряд (попали в прошлый раз)
@@ -1548,6 +1548,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
