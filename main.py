@@ -17,7 +17,7 @@ from openai import AsyncOpenAI
 # ================= НАСТРОЙКИ =================
 
 BOT_TOKEN = "8232116536:AAGlz50QniyVCZz1gC6yXHzWNntPUinMcSU"
-OPENAI_API_KEY = "sk-Vadfa" 
+OPENAI_API_KEY = "sk-VceymhbQITrkT8qoYFshaQ" 
 
 BOT_GUIDE = "https://telegra.ph/Baraholka-Bot-01-22"
 LINK_TAPIR_GUIDE = "https://t.me/destinygoods/9814" 
@@ -26,15 +26,18 @@ OWNER_ID = 832840031
 
 # Глобальные переменные
 PENDING_VERIFICATION = {}
-ACTIVE_DUELS = {}   
 USER_STATS = {} # Загружается из файла
 PROCESSED_ALBUMS = []
 LAST_MESSAGE_TIME = datetime.now()
 AI_COOLDOWN_TIME = datetime.now()
+SUMMARY_COOLDOWN_TIME = datetime.now()
 TOURNAMENT_ACTIVE = False
 TOURNAMENT_MAX_PLAYERS = 0
 TOURNAMENT_PLAYERS = [] # Список ID участников
 TOURNAMENT_USERNAMES = [] # Список ников для красоты
+CHAT_HISTORY = []
+SILENT_MODE_USERS = []
+USED_LORE_FACTS = []
 
 ADMIN_CHAT_ID = -1003376406623 
 CHAT_ID = -1002129048580
@@ -95,7 +98,7 @@ MUTE_CRITICAL_PHRASES = [
     "КРИТИЧЕСКИЙ УРОН! @username словил хедшот с ульты. Молчишь 30 МИНУТ.",
     "Вайп! Ты подвел команду. @username отправляется в мут на 30 МИНУТ.",
     "Архитекторы решили тебя уничтожить. @username замучен чате на 30 минут.",
-    "Это был Голден Ган. @username, увидимся через полчаса.",
+    "Громовой удар! Посиди в муте 30 минут, только без паники.",
     "Что с лицом, страж? @username, помолчи полчасика."
 ]
 
@@ -118,8 +121,8 @@ BAD_WORDS = ["лгбт", "цп", "казино", "цп", "child porn", "cp", "з
     "москаль", "свинособак", "черномаз", "нигга", "nigga", "nigger", "hohol", 
     "магазин 24/7", "hydra", "kraken", "убейся", "выпей яду", "роскомнадзорнись", "мамку ебал", "Путин", "Зеленский", "война", "либераха", "гейропа", "кокс", "фашист"] 
 
-BAN_WORDS = ["заработок в интернете", "быстрый заработок", "лучший заработок", "с доходом от", "без вложений", "работа для студентов", "доход от", "нужны люди для работы",
-    "арбитраж крипты", "мамкин инвестор",
+BAN_WORDS = ["заработок в интернете", "быстрый заработок", "лучший заработок", "с доходом от", "без вложений", "работа для студентов", "доход от", "нужны люди для работы", "Можно начать сразу", "Обучение бесплатно",
+    "арбитраж крипты", "мамкин инвестор", "Пoдxодит для гибкoгo гpaфика", "Oбyчeниe пpeдocтaвляeтcя", "ктo xoчeт пoдзapабoтaть", "Cвяжeмcя c кaждым", "гибкий график", "Открыта подработка", "Подойдёт даже", "Можно работать в свободное время",
     "раскрутка счета", "Требуется команда из 5 человек для интересного проекта на 2-4 часа. Оплата начинается от 8.000 руб. Пишите в личные сообщения для уточнения деталей."]
 
 ALLOWED_DOMAINS = ["youtube.com", "youtu.be", "google.com", "yandex.ru", "github.com", "x.com", "reddit.com", "t.me", "discord.com", "vk.com", "d2gunsmith.com", "light.gg", "d2foundry.gg", "destinyitemmanager.com", "bungie.net", "d2armorpicker.com"]
@@ -128,7 +131,7 @@ LINK_RULES = "https://telegra.ph/Pravila-kanala-i-chata-09-18"
 LINK_CHAT = "https://t.me/+Uaa0ALuvIfs1MzYy" 
 
 AI_SYSTEM_PROMPT = (
-    "Ты — интеллектуальный ИИ-ассистент, специализирующийся на игре Destiny 2. По умолчанию интерпретируй ЛЮБОЙ вопрос в контексте Destiny 2, если явно не указано иное. ПИШИ ОБЫЧНЫМ ТЕКСТОМ ВСЕГДА, также НЕ ПИШИ в своих ответах «[2]» подобное, выглядит как указание источников, убирай это из своих ответов."
+    "Ты — интеллектуальный ИИ-ассистент, специализирующийся на игре Destiny 2. По умолчанию интерпретируй ЛЮБОЙ вопрос в контексте Destiny 2, если явно не указано иное. НЕ ИСПОЛЬЗУЙ форматирование Telegram, по типу '**Жирность**', никаких выделений, ПИШИ ОБЫЧНЫМ ТЕКСТОМ ВСЕГДА, также НЕ ПИШИ в своих ответах «[2]» подобное, выглядит как указание источников, убирай это из своих ответов."
     "КОНТЕКСТ И АКТУАЛЬНОСТЬ: Если вопрос касается Destiny 2 (лора, билдов, экзотиков, рейдов, патчей, меты, активностей и т.д.), используй самые актуальные знания, Старайся опираться на свежую информацию: текущий сезон, патчи, баланс, мету, Если данные могут быть устаревшими — явно укажи это, Используй официальные названия на русском языке (если они существуют), а также общепринятый англоязычный сленг сообщества."
     "ПРИМЕР: «Испытания Осириса (Trials)», «Ночная миссия: ГМ (Grandmaster Nightfall)», «Сияние (Radiant)», «Ослабление (Weaken)», «Перегрузка (Overload)», Используй термины так, как это делают игроки."
     "СТИЛЬ И ПОВЕДЕНИЕ: Пиши как опытный Страж, а не как справочник, Используй сленг комьюнити, но не перегибай, Не будь формальным без причины, Не объясняй очевидные для игроков вещи, если пользователь не новичок, Если вопрос задан кратко — отвечай кратко."
@@ -202,6 +205,24 @@ conn.commit()
 
 # --- ФУНКЦИИ БД ---
 
+DUELS_FILE = os.path.join(DATA_DIR, "duels.json")
+def load_duels():
+    """Загружает игры и восстанавливает asyncio.Lock"""
+    if os.path.exists(DUELS_FILE):
+        try:
+            with open(DUELS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                duels = {}
+                for k, v in data.items():
+                    # Восстанавливаем Lock (он не сохраняется в json)
+                    v["lock"] = asyncio.Lock() 
+                    duels[int(k)] = v # Ключи json - строки, нам нужны int
+                return duels
+        except Exception as e:
+            print(f"Ошибка загрузки дуэлей: {e}")
+            return {}
+    return {}
+
 def get_user_data(user_id):
     """Получает статистику игрока"""
     try:
@@ -261,6 +282,26 @@ def get_rank_info(points):
             
     return "PVPGOD Барахолки", 0
 
+def save_duels():
+    """Сохраняет игры в файл (без lock)"""
+    try:
+        # Создаем копию без lock, так как lock нельзя сериализовать
+        data_to_save = {}
+        for k, v in ACTIVE_DUELS.items():
+            # Копируем словарь
+            game_copy = v.copy()
+            # Удаляем lock из копии перед сохранением
+            if "lock" in game_copy:
+                del game_copy["lock"]
+            data_to_save[k] = game_copy
+            
+        with open(DUELS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data_to_save, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Ошибка сохранения дуэлей: {e}")
+
+ACTIVE_DUELS = load_duels()
+
 # ================= ОБЩИЕ ФУНКЦИИ =================
 
 async def log_to_owner(text):
@@ -282,17 +323,29 @@ async def delete_later(message: types.Message, delay: int):
         pass
 
 async def check_silence_loop():
-    global LAST_MESSAGE_TIME
+    global LAST_MESSAGE_TIME, USED_LORE_FACTS
     while True:
         await asyncio.sleep(300) 
+        
         if (datetime.now() - LAST_MESSAGE_TIME).total_seconds() > 3600:
-            fact = random.choice(LORE_FACTS)
-            try:
-                TARGET_CHAT_ID = CHAT_ID 
-                await bot.send_message(TARGET_CHAT_ID, f"📢 Минутка Лора:\n{fact}")
-                LAST_MESSAGE_TIME = datetime.now()
-            except Exception as e:
-                await log_to_owner(f"❌ Ошибка отправки факта: {e}")
+            # Если показали все факты — сбрасываем историю
+            if len(USED_LORE_FACTS) >= len(LORE_FACTS):
+                USED_LORE_FACTS = []
+
+            # Ищем факт, которого еще не было
+            available_indices = [i for i in range(len(LORE_FACTS)) if i not in USED_LORE_FACTS]
+            
+            if available_indices:
+                idx = random.choice(available_indices)
+                USED_LORE_FACTS.append(idx)
+                fact = LORE_FACTS[idx]
+                
+                try:
+                    TARGET_CHAT_ID = CHAT_ID 
+                    await bot.send_message(TARGET_CHAT_ID, f"📢 <b>Минутка Лора:</b>\n{fact}")
+                    LAST_MESSAGE_TIME = datetime.now()
+                except Exception as e:
+                    await log_to_owner(f"❌ Ошибка отправки факта: {e}")
 
 def extract_urls(text):
     url_regex = r"(?P<url>https?://[^\s]+)"
@@ -358,6 +411,66 @@ async def verification_timer(chat_id: int, user_id: int, username: str, welcome_
             del PENDING_VERIFICATION[user_id]
 
 # ================= ХЕНДЛЕРЫ =================
+
+# --- SILENT MUTE (ТЕНЕВОЙ МУТ) ---
+@dp.message(Command("amute"))
+async def amute_command(message: types.Message):
+    # 1. Удаляем команду админа (чтобы не палиться)
+    try: await message.delete()
+    except: pass
+
+    # 2. Проверяем права АДМИНА
+    user_status = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if user_status.status not in ["administrator", "creator"]:
+        return # Игнорим обычных смертных
+
+    if not message.reply_to_message:
+        msg = await message.answer("⚠️ Ответь на сообщение того, кого хочешь заглушить.")
+        asyncio.create_task(delete_later(msg, 5))
+        return
+
+    target = message.reply_to_message.from_user
+    target_id = target.id
+    name = target.first_name
+
+    # 3. Защита: Нельзя мутить себя
+    if target_id == message.from_user.id:
+        msg = await message.answer("Зачем ты хочешь заглушить себя? Не делай этого.")
+        asyncio.create_task(delete_later(msg, 5))
+        return
+
+    # 5. Мутим
+    if target_id not in SILENT_MODE_USERS:
+        SILENT_MODE_USERS.append(target_id)
+        await message.answer(f"🤫 <b>{name}</b> отправлен в теневой бан. Его сообщения будут исчезать.")
+    else:
+        msg = await message.answer(f"{name} уже в муте.")
+        asyncio.create_task(delete_later(msg, 5))
+
+@dp.message(Command("unamute"))
+async def unamute_command(message: types.Message):
+    # 1. Удаляем команду
+    try: await message.delete()
+    except: pass
+
+    # 2. Проверка прав
+    user_status = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if user_status.status not in ["administrator", "creator"]:
+        return
+
+    if not message.reply_to_message:
+        return
+
+    target_id = message.reply_to_message.from_user.id
+    name = message.reply_to_message.from_user.first_name
+
+    if target_id in SILENT_MODE_USERS:
+        SILENT_MODE_USERS.remove(target_id)
+        msg = await message.answer(f"🔊 <b>{name}</b> снова слышен.")
+        asyncio.create_task(delete_later(msg, 10))
+    else:
+        msg = await message.answer(f"{name} не был в муте.")
+        asyncio.create_task(delete_later(msg, 5))
 
 # --- ЗАПУСК ТУРНИРА (АДМИН) ---
 @dp.message(Command("startcup"))
@@ -504,7 +617,7 @@ async def help_command(message: types.Message):
         [InlineKeyboardButton(text="🔧 Гайд по боту", url=BOT_GUIDE)]
     ])
     msg = await message.answer(
-        "Made by yagraze & pan1q.\n"
+        "Made by yagraze, pan1q & fimgreen.\n"
         "<b>📜 Команды:</b>\n"
         "/duel — Вызов на бой (Рейтинговый)\n"
         "/stats — Твоя статистика и ранг\n"
@@ -515,6 +628,95 @@ async def help_command(message: types.Message):
     )
     asyncio.create_task(delete_later(msg, 15))
     asyncio.create_task(delete_later(message, 5))
+
+# --- 5. ВОССТАНИЕ АШЕРА (Рандомный ответ) ---
+    # Шанс 0.2% (1 к 500) на любое сообщение (кроме команд)
+    VETERAN_PROMPT = (
+    "Ты — ветеран Destiny 2 с 10,000 часов игры. Ты закрывал рейды в первый день, у тебя все печати и экзоты. "
+    "Ты смотришь на чат с легким презрением и сарказмом. "
+    "Твоя задача — очень кратко прокомментировать сообщение пользователя, как будто он нуб, но при этом дать понять, что ты круче. "
+    "Можешь использовать сленг игры, но не злоупотребляй им. "
+    "Будь дерзким, но смешным."
+)
+    if not message.text.startswith("/") and random.randint(1, 200) == 1:
+        try:
+            await bot.send_chat_action(message.chat.id, action="typing")
+            
+            response = await client.chat.completions.create(
+                model="sonar",
+                messages=[
+                    {"role": "system", "content": VETERAN_PROMPT},
+                    {"role": "user", "content": f"Сообщение стража: {message.text}"}
+                ],
+                temperature=1, # Немного безумия
+                max_tokens=100
+            )
+            
+            vet_reply = response.choices[0].message.content
+            await message.reply(vet_reply)
+            
+        except Exception as e:
+            await log_to_owner(f"❌ Ошибка Ошибка Ветерана: {e}")
+
+# --- КОМАНДА /SUMMARY ---
+@dp.message(Command("summary"))
+async def summary_command(message: types.Message):
+    global SUMMARY_COOLDOWN_TIME
+    
+    # 1. Проверка КД
+    now = datetime.now()
+    if now < SUMMARY_COOLDOWN_TIME:
+        time_left = SUMMARY_COOLDOWN_TIME - now
+        minutes_left = int(time_left.total_seconds() // 60) + 1
+        
+        msg = await message.reply(
+            f"Подожди, я уже недавно рассказывал что было в чате. "
+            f"Обратись через <b>{minutes_left} мин</b>, а я пока почитаю логи."
+        )
+        asyncio.create_task(delete_later(msg, 10))
+        asyncio.create_task(delete_later(message, 5))
+        return
+
+    # 2. Проверка истории
+    if len(CHAT_HISTORY) < 5:
+        msg = await message.answer("Архивы пусты. В чате пока тишина.")
+        asyncio.create_task(delete_later(msg, 5))
+        asyncio.create_task(delete_later(message, 5))
+        return
+
+    # 3. Генерация
+    history_text = "\n".join(CHAT_HISTORY)
+    summary_prompt = (
+        "Ты — интеллектуальный ИИ-ассистент, специализирующийся на игре Destiny 2. По умолчанию интерпретируй ЛЮБОЙ вопрос в контексте Destiny 2, если явно не указано иное. НЕ ИСПОЛЬЗУЙ форматирование Telegram, по типу '**Жирность**', никаких выделений, ПИШИ ОБЫЧНЫМ ТЕКСТОМ ВСЕГДА, также НЕ ПИШИ в своих ответах «[2]» подобное, выглядит как указание источников, убирай это из своих ответов."
+        "СТИЛЬ И ПОВЕДЕНИЕ: Пиши как опытный Страж, а не как справочник, Используй сленг комьюнити, но не перегибай, Не будь формальным без причины"
+        "Твоя задача: прочитать лог чата и кратко пересказать, о чем говорили эти 'Стражи'. "
+        "Выдели главные темы, посмейся над нытиками, если они есть, расскажи про чей-то срач, если он был. "
+        "Будь краток (максимум 3-4 предложения)."
+    )
+
+    try:
+        await bot.send_chat_action(message.chat.id, action="typing")
+        
+        response = await client.chat.completions.create(
+            model="sonar",
+            messages=[
+                {"role": "system", "content": summary_prompt},
+                {"role": "user", "content": f"Вот лог чата:\n{history_text}"}
+            ],
+            temperature=0.8,
+            max_tokens=300
+        )
+        
+        summary = response.choices[0].message.content
+        await message.reply(f"<b>📄 ОТЧЕТ НАБЛЮДЕНИЯ:</b>\n\n{summary}")
+        
+        # Ставим КД 15 минут ПОСЛЕ успешного ответа
+        SUMMARY_COOLDOWN_TIME = datetime.now() + timedelta(minutes=15)
+        
+    except Exception as e:
+        await log_to_owner(f"❌ Ошибка Summary: {e}")
+        msg = await message.reply("Сбой анализа данных. Архивы повреждены.")
+        asyncio.create_task(delete_later(msg, 10))
 
 # --- DUEL RPG (100 HP) ---
 @dp.message(Command("duel"))
@@ -576,132 +778,139 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     p1 = game["p1"]
     p2 = game["p2"]
     
-    # Определяем, кто сейчас ходит (объект игрока)
+    # Определяем, чей ход
     current_player = p1 if game["turn"] == p1["id"] else p2
     current_class = current_player["class"]
+    current_weapon = current_player["weapon"] # ace или lw
     current_name = current_player["name"]
 
-    # Формируем заголовок (показываем классы игроков)
-    ru_cl = {"hunter": "🐍", "warlock": "🔮", "titan": "🛡"}
-    ru_classes = {"hunter": "Хантер 🐍", "warlock": "Варлок 🔮", "titan": "Титан 🛡"}
+    ru_classes = {"hunter": "🐍", "warlock": "🔮", "titan": "🛡"}
     title = f"{ru_classes[p1['class']]} vs {ru_classes[p2['class']]}"
 
-    # Статус полета Титана
     flying_status = ""
     if game.get("pending_crash"):
-        flying_status = "\n⚡ ВРАГ В ВОЗДУХЕ! СБЕЙ ЕГО!"
+        flying_status = "\n⚡ <b>ВРАГ В ВОЗДУХЕ! СБЕЙ ЕГО!</b>"
+
+    # Добавляем инфу о щите Титана в лог (если есть)
+    def_status = ""
+    if p1["buff_def"] > 0: def_status += f"\n🛡 {p1['name']}: Щит {p1['buff_def']} HP"
+    if p2["buff_def"] > 0: def_status += f"\n🛡 {p2['name']}: Щит {p2['buff_def']} HP"
 
     text = (
-        f"<b>⚔️ {title}</b>\n\n"
-        f"<b>🔴 {p1['name']}:</b> {p1['hp']} HP\n"
+        f"⚔️ <b>{title}</b>\n\n"
+        f"🔴 <b>{p1['name']}</b>: {p1['hp']} HP\n"
         f"[{get_hp_bar(p1['hp'])}]\n\n"
-        f"<b>🔵 {p2['name']}:</b> {p2['hp']} HP\n"
+        f"🔵 <b>{p2['name']}</b>: {p2['hp']} HP\n"
         f"[{get_hp_bar(p2['hp'])}]\n\n"
-        f"<b>📜 Лог:</b> {game['log']}\n"
-        f"{flying_status}\n\n"
-        f"<b>👉 Ход:</b> {current_name} [{ru_cl[current_class]}]"
+        f"📜 <i>Лог: {game['log']}</i>{flying_status}{def_status}\n\n"
+        f"👉 <b>Ход:</b> {current_name} ({ru_classes[current_class]})"
     )
 
-    # КНОПКИ
+    # ОПРЕДЕЛЯЕМ КНОПКУ ОРУЖИЯ
+    if current_weapon == "ace":
+        weapon_btn = InlineKeyboardButton(text="♠️ Ace (50%)", callback_data="duel_shoot_primary")
+    else:
+        weapon_btn = InlineKeyboardButton(text="🤠 Last Word (Burst)", callback_data="duel_shoot_primary")
+
     buttons = []
     
+    # Сборка кнопок под класс
     if current_class == "hunter":
         buttons = [
-            [
-                InlineKeyboardButton(text="♠️ Ace (50%)", callback_data="duel_ace"),
-                InlineKeyboardButton(text="🔥 Сияние (+Dmg)", callback_data="duel_buff_radiant")
-            ],
+            [weapon_btn, InlineKeyboardButton(text="🔥 Сияние (+Dmg)", callback_data="duel_buff_radiant")],
             [InlineKeyboardButton(text="🔫 Golden Gun (9%)", callback_data="duel_gg")]
         ]
     elif current_class == "warlock":
         buttons = [
-            [
-                InlineKeyboardButton(text="♠️ Ace (50%)", callback_data="duel_ace"),
-                InlineKeyboardButton(text="🌀 Пожирание (+Heal)", callback_data="duel_buff_devour")
-            ],
+            [weapon_btn, InlineKeyboardButton(text="🌀 Пожирание (+Heal)", callback_data="duel_buff_devour")],
             [InlineKeyboardButton(text="🟣 Nova Bomb (14%)", callback_data="duel_nova")]
         ]
     elif current_class == "titan":
         buttons = [
-            [
-                InlineKeyboardButton(text="♠️ Ace (50%)", callback_data="duel_ace"),
-                InlineKeyboardButton(text="🛡 Усиление (-SelfDmg)", callback_data="duel_buff_amplify")
-            ],
+            [weapon_btn, InlineKeyboardButton(text="🛡 Усиление (Щит)", callback_data="duel_buff_amplify")],
             [InlineKeyboardButton(text="⚡ Thundercrash (22%)", callback_data="duel_crash")]
         ]
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-    
-    try:
-        await callback.message.edit_text(text, reply_markup=keyboard)
-    except Exception:
-        pass
+    try: await callback.message.edit_text(text, reply_markup=keyboard)
+    except: pass
 
-# --- ОБРАБОТКА ВЫБОРА КЛАССА (ДЛЯ ДВОИХ) ---
-@dp.callback_query(F.data.startswith("duel_pick_"))
+# --- ОБРАБОТКА ВЫБОРА (КЛАСС + ОРУЖИЕ) ---
+# Ловим все колбеки, начинающиеся на pick_
+@dp.callback_query(F.data.startswith("pick_"))
 async def duel_class_handler(callback: types.CallbackQuery):
     game_id = callback.message.message_id
-    
     if game_id not in ACTIVE_DUELS:
         await callback.answer("Матч устарел.", show_alert=True)
-        try: await callback.message.edit_text("<b>🚫 Матч аннулирован.</b> (Кажется, тапир?...)", reply_markup=None)
-        except: pass
         return
 
     game = ACTIVE_DUELS[game_id]
     user_id = callback.from_user.id
-    choice = callback.data.split("_")[2]
+    data = callback.data # pick_class_hunter или pick_weapon_ace
 
-    # Определяем, кто нажал (Игрок 1 или Игрок 2)
-    player = None
-    if user_id == game["p1"]["id"]:
-        player = "p1"
-    elif user_id == game["p2"]["id"]:
-        player = "p2"
+    # Кто нажал?
+    player_key = None
+    if user_id == game["p1"]["id"]: player_key = "p1"
+    elif user_id == game["p2"]["id"]: player_key = "p2"
     else:
-        await callback.answer("Ты не участвуешь в дуэли!", show_alert=True)
+        await callback.answer("Ты не участвуешь!", show_alert=True)
         return
 
-    # Если уже выбрал - ругаем
-    if game[player]["class"] is not None:
-        await callback.answer("Ты уже выбрал класс!", show_alert=True)
-        return
+    player = game[player_key]
 
-    # Записываем выбор
-    real_choice = choice
-    if choice == "random":
-        real_choice = random.choice(["hunter", "warlock", "titan"])
+    # --- ЛОГИКА ВЫБОРА ---
     
-    game[player]["class"] = real_choice
+    # 1. Полный рандом
+    if data == "pick_full_random":
+        if player["class"] and player["weapon"]:
+            await callback.answer("Ты уже готов!", show_alert=True); return
+        player["class"] = random.choice(["hunter", "warlock", "titan"])
+        player["weapon"] = random.choice(["ace", "lw"])
+        await callback.answer("Случайный билд выбран!")
+
+    # 2. Выбор класса
+    elif "pick_class" in data:
+        cls = data.split("_")[2] # hunter/warlock/titan
+        player["class"] = cls
+        await callback.answer(f"Класс: {cls.capitalize()}")
+
+    # 3. Выбор оружия
+    elif "pick_weapon" in data:
+        wpn = data.split("_")[2] # ace/lw
+        if not player["class"]:
+            await callback.answer("Сначала выбери класс!", show_alert=True)
+            return
+        player["weapon"] = wpn
+        await callback.answer(f"Оружие: {wpn.capitalize()}")
+
+    # --- ОБНОВЛЕНИЕ СТАТУСА ---
     
-    # Обновляем текст (показываем галочки)
-    p1_status = "✅ Готов" if game["p1"]["class"] else "Ожидание..."
-    p2_status = "✅ Готов" if game["p2"]["class"] else "Ожидание..."
-    
-    # Если ОБА выбрали — начинаем бой
-    if game["p1"]["class"] and game["p2"]["class"]:
+    def get_status(p):
+        if not p["class"]: return "Ждет выбора класса..."
+        if not p["weapon"]: return f"{p['class'].capitalize()} (Ждет оружия...)"
+        return "✅ ГОТОВ"
+
+    # Если ОБА готовы — старт
+    if game["p1"]["class"] and game["p1"]["weapon"] and \
+       game["p2"]["class"] and game["p2"]["weapon"]:
+        
         game["state"] = "fighting"
-        # Рандомно выбираем, кто первый
         game["turn"] = random.choice([game["p1"]["id"], game["p2"]["id"]])
         
-        # Красивые названия для лога
-        ru_classes = {"hunter": "Хантер", "warlock": "Варлок", "titan": "Титан"}
-        c1 = ru_classes[game["p1"]["class"]]
-        c2 = ru_classes[game["p2"]["class"]]
+        c1 = game["p1"]["class"]
+        c2 = game["p2"]["class"]
+        game["log"] = f"⚔️ {c1.upper()} vs {c2.upper()}! Бой начинается!"
         
-        game["log"] = f"⚔️ {c1} vs {c2}! Бой начинается!"
         await update_duel_message(callback, game_id)
     else:
-        # Иначе просто обновляем сообщение
+        # Просто обновляем текст меню
         text = (
-            f"<b>🗳 ВЫБОР КЛАССОВ</b>\n\n"
-            f"👤 {game['p1']['name']}: {p1_status}\n"
-            f"👤 {game['p2']['name']}: {p2_status}\n\n"
-            f"Ждем второго игрока..."
+            f"🎒 <b>ВЫБОР СНАРЯЖЕНИЯ</b>\n\n"
+            f"👤 <b>{game['p1']['name']}:</b> {get_status(game['p1'])}\n"
+            f"👤 <b>{game['p2']['name']}:</b> {get_status(game['p2'])}\n\n"
+            f"1. Выбери Класс\n2. Выбери Оружие"
         )
-        # Клавиатуру оставляем ту же
-        current_kb = callback.message.reply_markup
-        try: await callback.message.edit_text(text, reply_markup=current_kb)
+        try: await callback.message.edit_text(text, reply_markup=callback.message.reply_markup)
         except: pass
         
     await callback.answer()
@@ -738,37 +947,43 @@ async def duel_handler(callback: types.CallbackQuery):
         except:
             att_name, def_name = "Игрок 1", "Игрок 2"
 
+        # ИНИЦИАЛИЗАЦИЯ (Добавили поле 'weapon')
         ACTIVE_DUELS[game_id] = {
             "p1": {
-                "id": attacker_id, "name": att_name, "hp": 100, "class": None, 
-                "ace_streak": 0, 
-                "buff_dmg": 0, "buff_heal": False, "buff_def": 0
+                "id": attacker_id, "name": att_name, "hp": 100, 
+                "class": None, "weapon": None, # Новое поле
+                "ace_streak": 0, "buff_dmg": 0, "buff_heal": False, "buff_def": 0
             },
             "p2": {
-                "id": defender_id, "name": def_name, "hp": 100, "class": None, 
-                "ace_streak": 0, 
-                "buff_dmg": 0, "buff_heal": False, "buff_def": 0
+                "id": defender_id, "name": def_name, "hp": 100, 
+                "class": None, "weapon": None, # Новое поле
+                "ace_streak": 0, "buff_dmg": 0, "buff_heal": False, "buff_def": 0
             },
             "state": "choosing_class",
-            "log": "Ожидание выбора классов...",
+            "log": "Ожидание выбора снаряжения...",
             "lock": asyncio.Lock()
         }
 
+        # НОВАЯ КЛАВИАТУРА ВЫБОРА
         buttons = [
-            [
-                InlineKeyboardButton(text="🐍 Хантер", callback_data="duel_pick_hunter"),
-                InlineKeyboardButton(text="🔮 Варлок", callback_data="duel_pick_warlock"),
-                InlineKeyboardButton(text="🛡 Титан", callback_data="duel_pick_titan")
+            [ # Ряд классов
+                InlineKeyboardButton(text="🐍 Хантер", callback_data="pick_class_hunter"),
+                InlineKeyboardButton(text="🔮 Варлок", callback_data="pick_class_warlock"),
+                InlineKeyboardButton(text="🛡 Титан", callback_data="pick_class_titan")
             ],
-            [InlineKeyboardButton(text="🎲 Рандом", callback_data="duel_pick_random")]
+            [ # Ряд оружия
+                InlineKeyboardButton(text="♠️ Ace of Spades", callback_data="pick_weapon_ace"),
+                InlineKeyboardButton(text="🤠 Last Word", callback_data="pick_weapon_lw")
+            ],
+            [InlineKeyboardButton(text="🎲 Случайный билд", callback_data="pick_full_random")]
         ]
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
         text = (
-            f"🗳 <b>ВЫБОР КЛАССОВ</b>\n\n"
-            f"👤 <b>{att_name}:</b> ⏳\n"
-            f"👤 <b>{def_name}:</b> ⏳\n\n"
-            f"Каждый выбирает класс сам за себя!"
+            f"🎒 <b>ВЫБОР СНАРЯЖЕНИЯ</b>\n\n"
+            f"👤 <b>{att_name}:</b> Выбор...\n"
+            f"👤 <b>{def_name}:</b> Выбор...\n\n"
+            f"1. Выбери Класс\n2. Выбери Оружие"
         )
 
         await callback.message.edit_text(text, reply_markup=keyboard)
@@ -799,14 +1014,17 @@ async def duel_handler(callback: types.CallbackQuery):
                 caster["buff_dmg"] = 10
                 buff_name = "🔥 Сияние"
                 log_msg = f"{caster['name']} активирует <b>Сияние</b>! След. выстрел +10 урона."
+                save_duels()
             elif action == "duel_buff_devour" and caster["class"] == "warlock":
                 caster["buff_heal"] = True
                 buff_name = "🌀 Пожирание"
                 log_msg = f"{caster['name']} активирует <b>Пожирание</b>! След. попадание исцелит 10 HP."
+                save_duels()
             elif action == "duel_buff_amplify" and caster["class"] == "titan":
                 caster["buff_def"] = 10
                 buff_name = "🛡 Усиление"
                 log_msg = f"{caster['name']} получает <b>Усиление</b>! След. урон по нему снижен на 10."
+                save_duels()
             else:
                 await callback.answer("Не твой класс!", show_alert=True)
                 return
@@ -841,136 +1059,151 @@ async def duel_handler(callback: types.CallbackQuery):
                 game["turn"] = enemy["id"]
 
             game["log"] = log_msg
+            save_duels()
             await update_duel_message(callback, game_id)
             await callback.answer(f"{buff_name} активировано!")
             return
 
-    # --- ВЫСТРЕЛ ---
-    if action in ["duel_gg", "duel_ace", "duel_nova", "duel_crash"]:
+    # --- ВЫСТРЕЛ (ОСНОВНОЙ И УЛЬТА) ---
+    # Мы используем 'duel_shoot_primary' для основного оружия (Туз или ЛВ)
+    if action in ["duel_shoot_primary", "duel_gg", "duel_nova", "duel_crash"]:
         game_id = callback.message.message_id
-        
-        if game_id not in ACTIVE_DUELS:
-            await callback.answer("Матч устарел.", show_alert=True)
-            try: await callback.message.edit_text("🚫 <b>Матч аннулирован</b>", reply_markup=None)
-            except: pass
-            return
-
+        if game_id not in ACTIVE_DUELS: return
         game = ACTIVE_DUELS[game_id]
 
         async with game["lock"]:
             if game.get("state") != "fighting":
-                await callback.answer("Бой еще не начался!", show_alert=True)
-                return
+                await callback.answer("Не все готовы!", show_alert=True); return
 
             if game.get("pending_crash") and action == "duel_crash":
-                await callback.answer("Противник в воздухе! Стреляй!", show_alert=True)
-                return
+                await callback.answer("Враг летит! Сбей его!", show_alert=True); return
 
             shooter_id = callback.from_user.id
             if shooter_id != game["turn"]:
-                await callback.answer("Сейчас не твой ход!", show_alert=True)
-                return
+                await callback.answer("Не твой ход!", show_alert=True); return
 
+            # Определяем стороны
             if shooter_id == game["p1"]["id"]:
                 shooter, target = game["p1"], game["p2"]
             else:
                 shooter, target = game["p2"], game["p1"]
 
-            # Проверка класса
-            cls = shooter["class"]
-            if cls == "hunter" and action not in ["duel_gg", "duel_ace"]: 
-                await callback.answer("Не твое оружие!", show_alert=True); return
-            if cls == "warlock" and action not in ["duel_nova", "duel_ace"]: 
-                await callback.answer("Не твое оружие!", show_alert=True); return
-            if cls == "titan" and action not in ["duel_crash", "duel_ace"]: 
-                await callback.answer("Не твое оружие!", show_alert=True); return
-
-            # ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ (ВАЖНО!)
+            # Переменные
             damage = 0
-            hit = False
-            weapon_name = ""
-            healed = False # Инициализируем заранее!
-
-            # Сброс стрика Туза при смене оружия
-            if action != "duel_ace":
-                shooter["ace_streak"] = 0
-
-            # === ЛОГИКА ТИТАНА (ЗАПУСК) ===
-            if action == "duel_crash":
-                game["pending_crash"] = shooter_id 
-                game["crash_turns"] = 2            
-                game["turn"] = target["id"]        
-                game["log"] = f"⚡ <b>ГРОМ!</b> {shooter['name']} взмывает в воздух! У {target['name']} есть 2 выстрела!"
-                await update_duel_message(callback, game_id)
-                await callback.answer()
-                return
-
-            # === ЛОГИКА ОРУЖИЯ ===
-            if action == "duel_gg":
-                weapon_name = "🔥 Голден Ган"
-                if random.randint(1, 100) <= 9: hit = True; damage = 100
+            hits_count = 0 # Для ЛВ
+            log_msg = ""
+            healed_amount = 0
             
-            elif action == "duel_ace":
-                weapon_name = "♠️ Пиковый Туз"
-                streak = shooter.get("ace_streak", 0)
-                
-                base_chance = 50 # Базовый шанс
-                crit_chance = 0
-                
-                if streak == 1: crit_chance = 10 # +10% к криту если был хит
-                
-                roll = random.randint(1, 100)
-                
-                if roll <= crit_chance:
-                    hit = True; damage = 50; shooter["ace_streak"] = 0
-                elif roll <= (crit_chance + base_chance):
-                    hit = True; damage = 25; shooter["ace_streak"] = 1
-                else:
-                    hit = False; damage = 0; shooter["ace_streak"] = 0
+            # --- ЛОГИКА ОРУЖИЯ ---
             
-            elif action == "duel_nova":
-                weapon_name = "🟣 Нова Бомба"
-                roll = random.randint(1, 100)
-                if roll <= 5: hit = True; damage = 100
-                elif roll <= 14: hit = True; damage = 75
-                else: hit = False; damage = 0
+            # 1. Основное оружие (Туз или ЛВ)
+            if action == "duel_shoot_primary":
+                weapon_type = shooter["weapon"]
+                
+                # ТУЗ (Ace)
+                if weapon_type == "ace":
+                    weapon_name = "♠️ Пиковый Туз"
+                    shooter["ace_streak"] = shooter.get("ace_streak", 0)
+                    
+                    base_chance = 50
+                    crit_chance = 10 if shooter["ace_streak"] == 1 else 0
+                    
+                    roll = random.randint(1, 100)
+                    
+                    if roll <= crit_chance: # Крит
+                        damage = 50
+                        shooter["ace_streak"] = 0
+                        log_msg = f"💀 <b>MEMENTO MORI!</b> {shooter['name']} критует на {damage}!"
+                    elif roll <= (crit_chance + base_chance): # Хит
+                        damage = 25 # Ты просил 34 в прошлый раз? Или 25? Ставлю 34.
+                        shooter["ace_streak"] = 1
+                        log_msg = f"💥 <b>Попадание!</b> {shooter['name']} наносит {damage} урона."
+                    else: # Мисс
+                        damage = 0
+                        shooter["ace_streak"] = 0
+                        log_msg = f"💨 <b>Промах!</b> {shooter['name']} мажет с Туза."
 
-            # === ПРИМЕНЕНИЕ БАФФОВ ===
-            # 1. Урон
-            if hit and shooter.get("buff_dmg", 0) > 0:
+                # ЛАСТВОРД (Last Word)
+                elif weapon_type == "lw":
+                    weapon_name = "🤠 Last Word"
+                    shooter["ace_streak"] = 0 # Сбрасываем стрик Туза на всякий
+                    
+                    # 8 выстрелов по 10%, 6 урона каждый
+                    shots_log = []
+                    for _ in range(8):
+                        if random.randint(1, 100) <= 10:
+                            damage += 6
+                            hits_count += 1
+                            shots_log.append("💥")
+                        else:
+                            shots_log.append("💨")
+                    
+                    visual = "".join(shots_log)
+                    if damage > 0:
+                        log_msg = f"🤠 <b>Веерный огонь!</b> [{visual}] {shooter['name']} попадает {hits_count} раз! ({damage} урона)"
+                    else:
+                        log_msg = f"🤠 <b>Веерный огонь!</b> [{visual}] {shooter['name']} разрядил барабан в кактусы."
+
+            # 2. Ульта (Классовая)
+            else:
+                shooter["ace_streak"] = 0 # Смена оружия сбрасывает стрик
+                
+                if action == "duel_gg": # Хант
+                    if random.randint(1, 100) <= 9: damage = 100; log_msg = f"💥 <b>КРИТ!</b> {shooter['name']} использует 🔥Голден Ган! (100 урона)"
+                    else: log_msg = f"💨 {shooter['name']} промазал с Голден Гана!"
+                
+                elif action == "duel_nova": # Варлок
+                    roll = random.randint(1, 100)
+                    if roll <= 5: damage = 100; log_msg = f"💥 <b>КРИТ!</b> {shooter['name']} взорвал соперника! (100 урона)"
+                    elif roll <= 14: damage = 70; log_msg = f"🟣 <b>НОВА!</b> {shooter['name']} задел соперника взрывом! (70 урона)"
+                    else: log_msg = f"💨 Нова улетела в стену."
+                
+                elif action == "duel_crash": # Титан
+                    # Запуск полета (то же самое, что и было)
+                    game["pending_crash"] = shooter_id 
+                    game["crash_turns"] = 2            
+                    game["turn"] = target["id"]        
+                    game["log"] = f"⚡ <b>ГРОМ!</b> {shooter['name']} прожал ульту! у соперника 2 действия!"
+                    await update_duel_message(callback, game_id)
+                    await callback.answer()
+                    return
+
+            # --- ПРИМЕНЕНИЕ БАФФОВ И УРОНА ---
+            
+            # 1. Урон (Хант - Сияние)
+            # Работает, если есть ХОТЯ БЫ 1 попадание (damage > 0)
+            if damage > 0 and shooter["buff_dmg"] > 0:
                 damage += shooter["buff_dmg"]
-                shooter["buff_dmg"] = 0
-            
-            # 2. Защита
-            if hit and target.get("buff_def", 0) > 0 and damage < 100:
-                damage -= target["buff_def"]
-                if damage < 0: damage = 0
-                target["buff_def"] = 0
-            
-            # 3. Хил (Варлок)
-            if hit and shooter.get("buff_heal") and action != "duel_nova":
+                shooter["buff_dmg"] = 0 # Сгорает
+                log_msg += " (+10 Сияние)"
+
+            # 2. Защита (Титан - Усиление) - НОВАЯ МЕХАНИКА
+            # Работает, если есть урон и он меньше 100 (ваншоты пробивают)
+            if damage > 0 and damage < 100 and target["buff_def"] > 0:
+                # Сколько щит может впитать?
+                blocked = min(damage, target["buff_def"]) 
+                
+                damage -= blocked
+                target["buff_def"] -= blocked # Щит уменьшается, но не исчезает, если не пробит полностью
+                
+                log_msg += f" (🛡 -{blocked})"
+                if target["buff_def"] <= 0:
+                    log_msg += " [Щит сломан]"
+
+            # 3. Хил (Варлок - Пожирание)
+            # Работает, если было попадание (для ЛВ - хотя бы 1 пуля) и это не Нова
+            if damage > 0 and shooter["buff_heal"] and action == "duel_shoot_primary":
                 shooter["hp"] += 10
                 if shooter["hp"] > 100: shooter["hp"] = 100
-                shooter["buff_heal"] = False
-                healed = True
+                shooter["buff_heal"] = False # Сгорает
+                log_msg += " (🌀 +10 HP)"
 
-            # Наносим урон
-            log_msg = ""
-            if hit:
+            # Финальное применение урона
+            if damage > 0:
                 target["hp"] -= damage
                 if target["hp"] < 0: target["hp"] = 0
-                
-                if action == "duel_nova" and damage == 100:
-                    log_msg = f"💥 <b>КРИТ!</b> {shooter['name']} кидает Нову и стирает врага! (100 урона)"
-                elif action == "duel_ace" and damage >= 50:
-                    log_msg = f"💀 <b>MEMENTO MORI!</b> {shooter['name']} наносит КРИТ {damage} урона!"
-                else:
-                    heal_text = " (+10 HP)" if healed else ""
-                    log_msg = f"💥 <b>Попадание!</b> {shooter['name']} использует {weapon_name} ({damage} dmg){heal_text}!"
-            else:
-                log_msg = f"💨 <b>Промах!</b> {shooter['name']} промазал с {weapon_name}."
 
-            # Проверка смерти
+            # --- ПРОВЕРКА СМЕРТИ ---
             if target["hp"] <= 0:
                 update_duel_stats(shooter['id'], True)
                 update_duel_stats(target['id'], False)
@@ -979,19 +1212,16 @@ async def duel_handler(callback: types.CallbackQuery):
                 await callback.answer()
                 return
 
-            # === ЛОГИКА ПРИЗЕМЛЕНИЯ ТИТАНА ===
+            # --- ПРИЗЕМЛЕНИЕ ТИТАНА (Если летел) ---
             flying_titan_id = game.get("pending_crash")
             if flying_titan_id:
-                if shooter_id != flying_titan_id:
+                if shooter_id != flying_titan_id: # Стрелял защитник
                     game["crash_turns"] -= 1
-                    if game["crash_turns"] > 0:
-                        game["log"] = f"{log_msg}\n⏳ Титан летит! Еще 1 выстрел!"
-                        game["turn"] = shooter_id 
-                    else:
+                    if game["crash_turns"] <= 0:
+                        # Титан падает
                         titan_id = flying_titan_id
                         titan = game["p1"] if game["p1"]["id"] == titan_id else game["p2"]
                         enemy_pl = game["p1"] if game["p1"]["id"] != titan_id else game["p2"]
-                        
                         game["pending_crash"] = None
                         
                         if random.randint(1, 100) <= 17:
@@ -999,17 +1229,21 @@ async def duel_handler(callback: types.CallbackQuery):
                             update_duel_stats(titan['id'], True)
                             update_duel_stats(enemy_pl['id'], False)
                             del ACTIVE_DUELS[game_id]
-                            msg = f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n⚡ <b>БАБАХ!</b> {titan['name']} приземляется на голову врага! (-100 HP)"
+                            msg = f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n⚡ <b>БУУУМ!</b> {titan['name']} размазал соперника! (-100 HP)"
                             await callback.message.edit_text(msg, reply_markup=None)
                             await callback.answer()
                             return
                         else:
-                            game["log"] = f"{log_msg}\n\n💨 {titan['name']} промахивается ультой!"
-                            game["turn"] = titan_id 
+                            game["log"] = f"{log_msg}\n\n💨 {titan['name']} промахивается тандеркрашем!"
+                            game["turn"] = titan_id # Ход титану
+                    else:
+                        game["log"] = f"{log_msg}\n⏳ Титан летит! 1 выстрел остался!"
+                        game["turn"] = shooter_id # Ход остается у стрелка
             else:
+                # Обычная передача хода
                 game["turn"] = target["id"]
                 game["log"] = log_msg
-            
+
             await update_duel_message(callback, game_id)
             await callback.answer()
 
@@ -1328,6 +1562,13 @@ async def moderate_and_chat(message: types.Message):
     chat_username = message.chat.username
     user_id = message.from_user.id
 
+    # --- ТЕНЕВОЙ БАН (AMUTE) ---
+    if message.from_user.id in SILENT_MODE_USERS:
+        try:
+            await message.delete()
+        except: pass
+        return # Сразу выходим, ничего больше не делаем
+    
     # --- ПРОВЕРКА НОВИЧКА ---
     if user_id in PENDING_VERIFICATION:
         data = PENDING_VERIFICATION[user_id]
@@ -1486,8 +1727,13 @@ async def moderate_and_chat(message: types.Message):
             
         except Exception as e:
             error_text = str(e)[:300]
-            await log_to_owner(f"❌ Ошибка ИИ: {error_text}")
-            # Если ошибка — не отвечаем пользователю, чтобы не спамить
+            await log_to_owner(f"❌ Ошибка ИИ: {error_text}")  
+
+    if message.text:
+        entry = f"{username}: {message.text[:100]}"
+        CHAT_HISTORY.append(entry)
+        if len(CHAT_HISTORY) > 150:
+            CHAT_HISTORY.pop(0)
             
 # ================= ЗАПУСК =================
 
@@ -1499,36 +1745,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
