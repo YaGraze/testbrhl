@@ -1131,7 +1131,7 @@ async def duel_handler(callback: types.CallbackQuery):
                     # 8 выстрелов по 10%, 6 урона каждый
                     shots_log = []
                     for _ in range(8):
-                        if random.randint(1, 100) <= 10:
+                        if random.randint(1, 100) <= 18:
                             damage += 6
                             hits_count += 1
                             shots_log.append("💥")
@@ -1745,6 +1745,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
