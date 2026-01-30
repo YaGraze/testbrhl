@@ -1113,11 +1113,11 @@ async def duel_handler(callback: types.CallbackQuery):
                     if roll <= crit_chance: # Крит
                         damage = 50
                         shooter["ace_streak"] = 0
-                        log_msg = f"💀 <b>MEMENTO MORI!</b> {shooter['name']} критует на {damage}!"
+                        log_msg = f"💀 <b>MEMENTO MORI!</b> {shooter['name']} критует Тузом на {damage}!"
                     elif roll <= (crit_chance + base_chance): # Хит
                         damage = 25 # Ты просил 34 в прошлый раз? Или 25? Ставлю 34.
                         shooter["ace_streak"] = 1
-                        log_msg = f"💥 <b>Попадание!</b> {shooter['name']} наносит {damage} урона."
+                        log_msg = f"💥 <b>Попадание!</b> {shooter['name']} наносит Тузом {damage} урона."
                     else: # Мисс
                         damage = 0
                         shooter["ace_streak"] = 0
@@ -1154,8 +1154,8 @@ async def duel_handler(callback: types.CallbackQuery):
                 
                 elif action == "duel_nova": # Варлок
                     roll = random.randint(1, 100)
-                    if roll <= 5: damage = 100; log_msg = f"💥 <b>КРИТ!</b> {shooter['name']} взорвал соперника! (100 урона)"
-                    elif roll <= 14: damage = 70; log_msg = f"🟣 <b>НОВА!</b> {shooter['name']} задел соперника взрывом! (70 урона)"
+                    if roll <= 5: damage = 100; log_msg = f"💥 <b>КРИТ!</b> {shooter['name']} взорвал соперника НОВОЙ! (100 урона)"
+                    elif roll <= 14: damage = 75; log_msg = f"🟣 <b>НОВА!</b> {shooter['name']} задел соперника взрывом! (75 урона)"
                     else: log_msg = f"💨 Нова улетела в стену."
                 
                 elif action == "duel_crash": # Титан
@@ -1745,6 +1745,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
