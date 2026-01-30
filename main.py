@@ -1131,18 +1131,18 @@ async def duel_handler(callback: types.CallbackQuery):
                     # 8 выстрелов по 10%, 6 урона каждый
                     shots_log = []
                     for _ in range(8):
-                        if random.randint(1, 100) <= 18:
+                        if random.randint(1, 100) <= 25:
                             damage += 6
                             hits_count += 1
                             shots_log.append("💥")
                         else:
-                            shots_log.append("💨")
+                            shots_log.append(" ")
                     
                     visual = "".join(shots_log)
                     if damage > 0:
-                        log_msg = f"🤠 <b>Веерный огонь!</b> [{visual}] {shooter['name']} попадает {hits_count} раз! ({damage} урона)"
+                        log_msg = f"🤠 <b>Падание!</b> {shooter['name']} попадает {hits_count} раз! ({damage} урона)\n[{visual}]"
                     else:
-                        log_msg = f"🤠 <b>Веерный огонь!</b> [{visual}] {shooter['name']} разрядил барабан в кактусы."
+                        log_msg = f"🤠 <b>Промах!</b> {shooter['name']} разрядил барабан в кактусы.\n[{visual}]"
 
             # 2. Ульта (Классовая)
             else:
@@ -1745,6 +1745,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
