@@ -771,6 +771,17 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
         return
 
     game = ACTIVE_DUELS[game_id]
+
+    # --- ЗАЩИТА ОТ ФЛУДА ---
+    # Если с последнего обновления прошло меньше 1 секунды — пропускаем
+    now = datetime.now()
+    last = game.get("last_update", datetime.min)
+    if (now - last).total_seconds() < 1.0:
+        # Пропускаем обновление интерфейса, чтобы не словить бан
+        # Но логику игры не ломаем, она уже прошла
+        return
+    
+    game["last_update"] = now
     
     def get_hp_bar(hp):
         blocks = int(hp / 10) 
@@ -1787,6 +1798,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
