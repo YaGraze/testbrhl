@@ -832,8 +832,26 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
         ]
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-    try: await callback.message.edit_text(text, reply_markup=keyboard)
-    except: pass
+
+    # Добавляем кнопку обновления в конец
+    refresh_btn = InlineKeyboardButton(text="🔄 Обновить (если зависло)", callback_data="duel_refresh")
+    
+    # Добавляем её отдельной строкой или к существующим
+    buttons.append([refresh_btn])
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    except Exception as e:
+        # Если словили флуд-лимит, ждем и пробуем снова (но не блокируем всё)
+        if "Flood control" in str(e):
+            await asyncio.sleep(1) # Ждем секунду
+            try:
+                await callback.message.edit_text(text, reply_markup=keyboard)
+            except: pass
+        # Если текст не изменился (MessageNotModified), просто игнорим
+        pass
 
 # --- ОБРАБОТКА ВЫБОРА (КЛАСС + ОРУЖИЕ) ---
 # Ловим все колбеки, начинающиеся на pick_
@@ -914,6 +932,16 @@ async def duel_class_handler(callback: types.CallbackQuery):
         except: pass
         
     await callback.answer()
+
+@dp.callback_query(F.data == "duel_refresh")
+async def duel_refresh_handler(callback: types.CallbackQuery):
+    game_id = callback.message.message_id
+    if game_id not in ACTIVE_DUELS:
+        await callback.answer("Игра не найдена.", show_alert=True)
+        return
+        
+    await update_duel_message(callback, game_id)
+    await callback.answer("Интерфейс обновлен.")
 
 @dp.callback_query(F.data.startswith("duel_"))
 async def duel_handler(callback: types.CallbackQuery):
@@ -1088,6 +1116,19 @@ async def duel_handler(callback: types.CallbackQuery):
             else:
                 shooter, target = game["p2"], game["p1"]
 
+            # --- ЗАЩИТА ОТ ЧУЖИХ КНОПОК ---
+            # Проверяем, соответствует ли действие классу игрока
+            cls = shooter["class"]
+            
+            if cls == "hunter" and action in ["duel_nova", "duel_crash"]:
+                await callback.answer("Это не твоя способность!", show_alert=True); return
+                
+            if cls == "warlock" and action in ["duel_gg", "duel_crash"]:
+                await callback.answer("Это не твоя способность!", show_alert=True); return
+                
+            if cls == "titan" and action in ["duel_gg", "duel_nova"]:
+                await callback.answer("Это не твоя способность!", show_alert=True); return
+            
             # Переменные
             damage = 0
             hits_count = 0 # Для ЛВ
@@ -1745,6 +1786,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
