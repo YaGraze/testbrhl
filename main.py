@@ -412,6 +412,12 @@ async def verification_timer(chat_id: int, user_id: int, username: str, welcome_
 
 # ================= ХЕНДЛЕРЫ =================
 
+# --- ВРЕМЕННЫЙ ХЕНДЛЕР (ЧТОБЫ УЗНАТЬ ID) ---
+@dp.message(F.voice)
+async def get_voice_id(message: types.Message):
+    # Бот пришлет тебе ID голосового
+    await message.reply(f"ID этого войса:\n<code>{message.voice.file_id}</code>")
+
 # --- SILENT MUTE (ТЕНЕВОЙ МУТ) ---
 @dp.message(Command("amute"))
 async def amute_command(message: types.Message):
@@ -1798,6 +1804,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
