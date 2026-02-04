@@ -1086,7 +1086,7 @@ async def duel_command(message: types.Message, command: CommandObject):
         f"<tg-emoji emoji-id='5330353116426551101'>🦁</tg-emoji> - Титаны: ТКраш & Усиление.\n"
         f"<b><tg-emoji emoji-id='5334544901428229844'>ℹ️</tg-emoji> Оружие на выбор:</b>\n"
         f"<tg-emoji emoji-id='5244894167863166109'>🃏</tg-emoji> - Пиковый Туз;\n"
-        f"<tg-emoji emoji-id='5472003139303409777'>🤠</tg-emoji> - Ластворд.\n\n"
+        f"<tg-emoji emoji-id='5472003139303409777'>🤠</tg-emoji> - Ластворд;\n"
         f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> - Шип.\n\n"
         f"<b>{def_name}</b>, ты принимаешь бой?",
         reply_markup=keyboard
@@ -1421,7 +1421,7 @@ async def duel_handler(callback: types.CallbackQuery):
                     caster["buff_dmg"] = 0 # Сгорает
                     log_msg += f"\n<tg-emoji emoji-id='5472158054478810637'>💥</tg-emoji> <b>СИЯЮЩИЙ ЯД!</b> ({poison_dmg} урона)"
                 else:
-                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {enemy['name']} (-9 HP)!"
+                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-9 HP)!"
 
                 # 2. КОМБО С ПОЖИРАНИЕМ
                 if caster["buff_heal"]:
@@ -1582,7 +1582,7 @@ async def duel_handler(callback: types.CallbackQuery):
                         else:
                             log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (20 урона + Яд)."
                             
-                        target["poison_turns"] = 2 # Обновляем таймер
+                        target["poison_turns"] = 1 # Обновляем таймер
                     else:
                         hit = False
                         damage = 0
@@ -2271,6 +2271,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
