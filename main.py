@@ -1411,23 +1411,36 @@ async def duel_handler(callback: types.CallbackQuery):
                 await callback.answer("Не твой класс!", show_alert=True)
                 return
 
-            # ТИК ЯДА (У врага, в МОЙ ход)
-            # Если на враге висит яд, он получает урон сейчас
+            # ТИК ЯДА + КОМБО С БАФФОМ
             if enemy["poison_turns"] > 0:
-                enemy["hp"] -= 9
-                enemy["poison_turns"] -= 1
-                log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {enemy['name']} (-9 HP)!"
+                poison_dmg = 9
                 
+                # 1. КОМБО С СИЯНИЕМ (Если только что включили или висело)
+                if caster["buff_dmg"] > 0:
+                    poison_dmg += caster["buff_dmg"]
+                    caster["buff_dmg"] = 0 # Сгорает
+                    log_msg += f"\n<tg-emoji emoji-id='5472158054478810637'>💥</tg-emoji> <b>СИЯЮЩИЙ ЯД!</b> ({poison_dmg} урона)"
+                else:
+                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {enemy['name']} (-9 HP)!"
+
+                # 2. КОМБО С ПОЖИРАНИЕМ
+                if caster["buff_heal"]:
+                    caster["hp"] += 10
+                    if caster["hp"] > 100: caster["hp"] = 100
+                    caster["buff_heal"] = False # Сгорает
+                    log_msg += " (<tg-emoji emoji-id='5474317667114457231'>🩸</tg-emoji> +10 HP)"
+
+                # Наносим урон
+                enemy["hp"] -= poison_dmg
+                enemy["poison_turns"] -= 1
+                
+                # Проверка смерти
                 if enemy["hp"] <= 0:
                     enemy["hp"] = 0
-                    # Победил Я (caster), так как враг умер от моего яда
-                    update_duel_stats(caster['id'], True)
-                    update_duel_stats(enemy['id'], False)
-                    del ACTIVE_DUELS[game_id]
-                    msg = f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {enemy['name']} погиб от яда!"
-                    await callback.message.edit_text(msg, reply_markup=None)
-                    await callback.answer()
-                    return
+                    update_duel_stats(caster['id'], True); update_duel_stats(enemy['id'], False)
+                    del ACTIVE_DUELS[game_id]; save_duels()
+                    await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {enemy['name']} погиб от яда!", reply_markup=None)
+                    await callback.answer(); return
             
             flying_titan_id = game.get("pending_crash")
             if flying_titan_id:
@@ -1554,46 +1567,49 @@ async def duel_handler(callback: types.CallbackQuery):
                         log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> <b>Промах!</b> {shooter['name']} разрядил барабан в кактусы.\n[{visual}]"
 
                 elif weapon_type == "thorn":
-                    update_usage(shooter_id, "w_thorn") # Добавь колонку w_thorn в БД!
+                    update_usage(shooter_id, "w_thorn")
                     weapon_name = "<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Шип"
                     shooter["ace_streak"] = 0
                 
-                    # Шанс 50%
                     if random.randint(1, 100) <= 50:
                         hit = True
                         damage = 20
-                        target["poison_turns"] = 2
-                        # Накладываем яд (не стакается, просто обновляется таймер)
-                        log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (20 урона + Яд)"
+                        
+                        # Если яд уже был, он тикает ПЕРЕД обновлением
+                        if target["poison_turns"] > 0:
+                            damage += 9 # Добавляем тик яда к урону выстрела
+                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (29 урона + Яд)"
+                        else:
+                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (20 урона + Яд)."
+                            
+                        target["poison_turns"] = 2 # Обновляем таймер
                     else:
                         hit = False
                         damage = 0
-                        log_msg = f"💨 <b>Промах!</b> Выстрел Шипа пролетел мимо."
-
-            else:
-                shooter["ace_streak"] = 0
+                        log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> <b>Промах!</b> Шип пролетел мимо."
                 
-                if action == "duel_gg":
-                    update_usage(shooter_id, "w_gg")
-                    if random.randint(1, 100) <= 9: damage = 100; log_msg = f"<tg-emoji emoji-id='5276032951342088188'>💥</tg-emoji> <b>КРИТ!</b> {shooter['name']} использует <tg-emoji emoji-id='5312241539987020022'>🔥</tg-emoji> Голден Ган! (100 урона)"
-                    else: log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> {shooter['name']} промазал с Голден Гана!"
+            elif action == "duel_gg":
+                update_usage(shooter_id, "w_gg")
+                if random.randint(1, 100) <= 9: damage = 100; log_msg = f"<tg-emoji emoji-id='5276032951342088188'>💥</tg-emoji> <b>КРИТ!</b> {shooter['name']} использует <tg-emoji emoji-id='5312241539987020022'>🔥</tg-emoji> Голден Ган! (100 урона)"
+                else: log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> {shooter['name']} промазал с Голден Гана!"
                 
-                elif action == "duel_nova":
-                    update_usage(shooter_id, "w_nova")
-                    roll = random.randint(1, 100)
-                    if roll <= 5: damage = 100; log_msg = f"<tg-emoji emoji-id='5276032951342088188'>💥</tg-emoji> <b>КРИТ!</b> {shooter['name']} взорвал соперника НОВОЙ! (100 урона)"
-                    elif roll <= 14: damage = 75; log_msg = f"<tg-emoji emoji-id='5379748062124056162'>❗️</tg-emoji> <b>НОВА!</b> {shooter['name']} задел соперника взрывом! (75 урона)"
-                    else: log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> Нова улетела в стену."
+            elif action == "duel_nova":
+                update_usage(shooter_id, "w_nova")
+                roll = random.randint(1, 100)
+                if roll <= 5: damage = 100; log_msg = f"<tg-emoji emoji-id='5276032951342088188'>💥</tg-emoji> <b>КРИТ!</b> {shooter['name']} взорвал соперника НОВОЙ! (100 урона)"
+                elif roll <= 14: damage = 75; log_msg = f"<tg-emoji emoji-id='5379748062124056162'>❗️</tg-emoji> <b>НОВА!</b> {shooter['name']} задел соперника взрывом! (75 урона)"
+                else: log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> Нова улетела в стену."
                 
-                elif action == "duel_crash":
-                    update_usage(shooter_id, "w_crash")
-                    game["pending_crash"] = shooter_id 
-                    game["crash_turns"] = 2            
-                    game["turn"] = target["id"]        
-                    game["log"] = f"<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> <b>ГРОМ!</b> {shooter['name']} прожал ульту! у соперника 2 действия!"
-                    await update_duel_message(callback, game_id)
-                    await callback.answer()
-                    return
+            elif action == "duel_crash":
+                update_usage(shooter_id, "w_crash")
+                game["pending_crash"] = shooter_id 
+                game["crash_turns"] = 2            
+                game["turn"] = target["id"]        
+                game["log"] = f"<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> <b>ГРОМ!</b> {shooter['name']} прожал ульту! у соперника 2 действия!"
+                save_duels() 
+                await update_duel_message(callback, game_id)
+                await callback.answer()
+                return
 
 #-------------------------------------------------------------------------------------------------------------------ПРИМЕНЕНИЕ БАФФОВ И УРОНА
             if damage > 0 and shooter["buff_dmg"] > 0:
@@ -2233,6 +2249,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
