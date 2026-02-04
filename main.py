@@ -1411,23 +1411,23 @@ async def duel_handler(callback: types.CallbackQuery):
                 await callback.answer("Не твой класс!", show_alert=True)
                 return
 
-            if shooter["active_poison"] > 0:
+            # ТИК ЯДА (У врага, в МОЙ ход)
+            # Если на враге висит яд, он получает урон сейчас
+            if enemy["poison_turns"] > 0:
+                enemy["hp"] -= 9
+                enemy["poison_turns"] -= 1
+                log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {enemy['name']} (-9 HP)!"
                 
-                is_thorn_shot_now = (action == "duel_shoot_primary" and shooter["weapon"] == "thorn" and hit)
-                
-                if not is_thorn_shot_now:
-                    target["hp"] -= 9
-                    if target["hp"] < 0: target["hp"] = 0
-                    
-                    shooter["active_poison"] -= 1
-                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-9 HP)!"
-                    
-                    # Проверка смерти от яда
-                    if target["hp"] <= 0:
-                        update_duel_stats(shooter['id'], True); update_duel_stats(target['id'], False)
-                        del ACTIVE_DUELS[game_id]; save_duels()
-                        await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {target['name']} погиб от яда!", reply_markup=None)
-                        await callback.answer(); return
+                if enemy["hp"] <= 0:
+                    enemy["hp"] = 0
+                    # Победил Я (caster), так как враг умер от моего яда
+                    update_duel_stats(caster['id'], True)
+                    update_duel_stats(enemy['id'], False)
+                    del ACTIVE_DUELS[game_id]
+                    msg = f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {enemy['name']} погиб от яда!"
+                    await callback.message.edit_text(msg, reply_markup=None)
+                    await callback.answer()
+                    return
             
             flying_titan_id = game.get("pending_crash")
             if flying_titan_id:
@@ -1562,7 +1562,7 @@ async def duel_handler(callback: types.CallbackQuery):
                     if random.randint(1, 100) <= 50:
                         hit = True
                         damage = 20
-                        shooter["active_poison"] = 2
+                        target["poison_turns"] = 2
                         # Накладываем яд (не стакается, просто обновляется таймер)
                         log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (20 урона + Яд)"
                     else:
@@ -1622,29 +1622,26 @@ async def duel_handler(callback: types.CallbackQuery):
                 target["hp"] -= damage
                 if target["hp"] < 0: target["hp"] = 0
 
-            # 2. Тик яда (по мне)
-            if caster["poison_turns"] > 0:
-                enemy["hp"] -= 9
-                caster["poison_turns"] -= 1
-                log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {shooter['name']} (-9 HP)!"
-                if enemy["hp"] < 0: enemy["hp"] = 0
+            # 2. ТИК ЯДА (У врага, в МОЙ ход)
+            # Но есть нюанс: если мы ТОЛЬКО ЧТО попали Шипом, яд не должен тикнуть мгновенно.
+            # (По твоим словам: "попадаю, противник ходит, Я делаю ход - дот срабатывает").
+            
+            is_new_poison = (action == "duel_shoot_primary" and shooter["weapon"] == "thorn" and hit)
+            
+            if target["poison_turns"] > 0 and not is_new_poison:
+                target["hp"] -= 9
+                target["poison_turns"] -= 1
+                log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-9 HP)!"
+                if target["hp"] < 0: target["hp"] = 0
 
-            # 3. ПРОВЕРКА ПОБЕДЫ (Я убил врага?)
+            # 3. ПРОВЕРКА ПОБЕДЫ (От выстрела ИЛИ от яда)
             if target["hp"] <= 0:
                 update_duel_stats(shooter['id'], True)
                 update_duel_stats(target['id'], False)
                 del ACTIVE_DUELS[game_id]
+                
+                # Если умер от яда, а не выстрела, можно поменять текст, но победа все равно моя
                 await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5463186335948878489'>⚰️</tg-emoji> {target['name']} повержен.", reply_markup=None)
-                await callback.answer()
-                return
-
-            # 4. ПРОВЕРКА ПОРАЖЕНИЯ (Я умер от яда?)
-            if shooter["hp"] <= 0:
-                update_duel_stats(target['id'], True)
-                update_duel_stats(shooter['id'], False)
-                del ACTIVE_DUELS[game_id]
-                save_duels()
-                await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {shooter['name']} погиб от яда!", reply_markup=None)
                 await callback.answer()
                 return
 
@@ -2236,6 +2233,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
