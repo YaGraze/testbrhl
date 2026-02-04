@@ -1087,6 +1087,7 @@ async def duel_command(message: types.Message, command: CommandObject):
         f"<b><tg-emoji emoji-id='5334544901428229844'>ℹ️</tg-emoji> Оружие на выбор:</b>\n"
         f"<tg-emoji emoji-id='5244894167863166109'>🃏</tg-emoji> - Пиковый Туз;\n"
         f"<tg-emoji emoji-id='5472003139303409777'>🤠</tg-emoji> - Ластворд.\n\n"
+        f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> - Шип.\n\n"
         f"<b>{def_name}</b>, ты принимаешь бой?",
         reply_markup=keyboard
     )
@@ -1354,7 +1355,7 @@ async def duel_handler(callback: types.CallbackQuery):
             ],
             [
                 InlineKeyboardButton(text="♠️ Ace of Spades", callback_data="pick_weapon_ace"),
-                InlineKeyboardButton(text="🤠 Last Word", callback_data="pick_weapon_lw")
+                InlineKeyboardButton(text="🤠 Last Word", callback_data="pick_weapon_lw"),
                 InlineKeyboardButton(text="🧪 Thorn", callback_data="pick_weapon_thorn")
             ],
             [InlineKeyboardButton(text="🎲 Случайный билд", callback_data="pick_full_random")]
@@ -2221,6 +2222,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
