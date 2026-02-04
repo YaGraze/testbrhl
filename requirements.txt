@@ -2,4 +2,6 @@ aiogram==3.3.0
 openai
 requests==2.31.0
 python-dotenv==1.1.0
-
+pytz
+yt-dlp
+apscheduler
