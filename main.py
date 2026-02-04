@@ -1605,7 +1605,7 @@ async def duel_handler(callback: types.CallbackQuery):
                 if game.get("pending_crash"): await callback.answer("Уже летит!", show_alert=True); return
                     
                 # --- ТИК ЯДА ПЕРЕД ПОЛЕТОМ ---
-                 if target["poison_turns"] > 0:
+                if target["poison_turns"] > 0:
                     target["hp"] -= 9
                     target["poison_turns"] -= 1
                     poison_msg = f"\n🧪 Яд сжигает {target['name']} (-9 HP)!"
@@ -2271,6 +2271,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
