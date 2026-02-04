@@ -1411,6 +1411,24 @@ async def duel_handler(callback: types.CallbackQuery):
                 await callback.answer("Не твой класс!", show_alert=True)
                 return
 
+            if shooter["active_poison"] > 0:
+                
+                is_thorn_shot_now = (action == "duel_shoot_primary" and shooter["weapon"] == "thorn" and hit)
+                
+                if not is_thorn_shot_now:
+                    target["hp"] -= 9
+                    if target["hp"] < 0: target["hp"] = 0
+                    
+                    shooter["active_poison"] -= 1
+                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-9 HP)!"
+                    
+                    # Проверка смерти от яда
+                    if target["hp"] <= 0:
+                        update_duel_stats(shooter['id'], True); update_duel_stats(target['id'], False)
+                        del ACTIVE_DUELS[game_id]; save_duels()
+                        await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {target['name']} погиб от яда!", reply_markup=None)
+                        await callback.answer(); return
+            
             flying_titan_id = game.get("pending_crash")
             if flying_titan_id:
                 game["crash_turns"] -= 1
@@ -1438,18 +1456,6 @@ async def duel_handler(callback: types.CallbackQuery):
                     game["turn"] = caster["id"]
             else:
                 game["turn"] = enemy["id"]
-
-            # ТИК ЯДА (У того, кто ходил)
-            if caster["poison_turns"] > 0:
-                caster["hp"] -= 9
-                caster["poison_turns"] -= 1
-                log_msg += f"\n🤢 Яд сжигает {caster['name']} (-9 HP)!"
-                if caster["hp"] <= 0:
-                    caster["hp"] = 0
-                    update_duel_stats(enemy['id'], True); update_duel_stats(caster['id'], False)
-                    del ACTIVE_DUELS[game_id]; save_duels()
-                    await callback.message.edit_text(f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n🤢 {caster['name']} умер от яда!", reply_markup=None)
-                    await callback.answer(); return
 
             game["log"] = log_msg
             save_duels()
@@ -1556,8 +1562,8 @@ async def duel_handler(callback: types.CallbackQuery):
                     if random.randint(1, 100) <= 50:
                         hit = True
                         damage = 20
+                        shooter["active_poison"] = 2
                         # Накладываем яд (не стакается, просто обновляется таймер)
-                        target["poison_turns"] = 2
                         log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (20 урона + Яд)"
                     else:
                         hit = False
@@ -2230,6 +2236,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
