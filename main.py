@@ -1623,11 +1623,11 @@ async def duel_handler(callback: types.CallbackQuery):
                 if target["hp"] < 0: target["hp"] = 0
 
             # 2. Тик яда (по мне)
-            if shooter["poison_turns"] > 0:
-                shooter["hp"] -= 9
-                shooter["poison_turns"] -= 1
+            if caster["poison_turns"] > 0:
+                enemy["hp"] -= 9
+                caster["poison_turns"] -= 1
                 log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {shooter['name']} (-9 HP)!"
-                if shooter["hp"] < 0: shooter["hp"] = 0
+                if enemy["hp"] < 0: enemy["hp"] = 0
 
             # 3. ПРОВЕРКА ПОБЕДЫ (Я убил врага?)
             if target["hp"] <= 0:
@@ -2236,6 +2236,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
