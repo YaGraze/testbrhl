@@ -1439,28 +1439,17 @@ async def duel_handler(callback: types.CallbackQuery):
             else:
                 game["turn"] = enemy["id"]
 
-            poison_dmg = 0
-            if shooter["poison_turns"] > 0:
-                shooter["hp"] -= 9
-                shooter["poison_turns"] -= 1
-                poison_dmg = 9
-            
-                # Если умер от яда
-                if shooter["hp"] <= 0:
-                    shooter["hp"] = 0
-                    update_duel_stats(target['id'], True) # Победил тот, кто отравил (target)
-                    update_duel_stats(shooter['id'], False)
-                    del ACTIVE_DUELS[game_id]
-                    save_duels()
-                
-                    await callback.message.edit_text(
-                        f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>{shooter['name']}</b> погибает от яда Шипа!", 
-                        reply_markup=None
-                    )
-                    await callback.answer()
-                    return
-            
-            log_msg += f"\n🤢 Яд сжигает {shooter['name']} (-9 HP)!"
+            # ТИК ЯДА (У того, кто ходил)
+            if caster["poison_turns"] > 0:
+                caster["hp"] -= 9
+                caster["poison_turns"] -= 1
+                log_msg += f"\n🤢 Яд сжигает {caster['name']} (-9 HP)!"
+                if caster["hp"] <= 0:
+                    caster["hp"] = 0
+                    update_duel_stats(enemy['id'], True); update_duel_stats(caster['id'], False)
+                    del ACTIVE_DUELS[game_id]; save_duels()
+                    await callback.message.edit_text(f"🏆 <b>ПОБЕДА!</b>\n\n{log_msg}\n\n🤢 {caster['name']} умер от яда!", reply_markup=None)
+                    await callback.answer(); return
 
             game["log"] = log_msg
             save_duels()
@@ -1622,15 +1611,34 @@ async def duel_handler(callback: types.CallbackQuery):
                 shooter["buff_heal"] = False # Сгорает
                 log_msg += " (<tg-emoji emoji-id='5474317667114457231'>🩸</tg-emoji> +10 HP)"
 
+            # 1. Наносим урон врагу
             if damage > 0:
                 target["hp"] -= damage
                 if target["hp"] < 0: target["hp"] = 0
 
+            # 2. Тик яда (по мне)
+            if shooter["poison_turns"] > 0:
+                shooter["hp"] -= 9
+                shooter["poison_turns"] -= 1
+                log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {shooter['name']} (-9 HP)!"
+                if shooter["hp"] < 0: shooter["hp"] = 0
+
+            # 3. ПРОВЕРКА ПОБЕДЫ (Я убил врага?)
             if target["hp"] <= 0:
                 update_duel_stats(shooter['id'], True)
                 update_duel_stats(target['id'], False)
                 del ACTIVE_DUELS[game_id]
                 await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5463186335948878489'>⚰️</tg-emoji> {target['name']} повержен.", reply_markup=None)
+                await callback.answer()
+                return
+
+            # 4. ПРОВЕРКА ПОРАЖЕНИЯ (Я умер от яда?)
+            if shooter["hp"] <= 0:
+                update_duel_stats(target['id'], True)
+                update_duel_stats(shooter['id'], False)
+                del ACTIVE_DUELS[game_id]
+                save_duels()
+                await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {shooter['name']} погиб от яда!", reply_markup=None)
                 await callback.answer()
                 return
 
