@@ -1602,6 +1602,22 @@ async def duel_handler(callback: types.CallbackQuery):
                 
             elif action == "duel_crash":
                 update_usage(shooter_id, "w_crash")
+                if game.get("pending_crash"): await callback.answer("Уже летит!", show_alert=True); return
+                    
+                # --- ТИК ЯДА ПЕРЕД ПОЛЕТОМ ---
+                 if target["poison_turns"] > 0:
+                    target["hp"] -= 9
+                    target["poison_turns"] -= 1
+                    poison_msg = f"\n🧪 Яд сжигает {target['name']} (-9 HP)!"
+                    if target["hp"] <= 0:
+                        # (Победа Титана)
+                        target["hp"] = 0
+                        update_duel_stats(shooter['id'], True); update_duel_stats(target['id'], False)
+                        del ACTIVE_DUELS[game_id]; save_duels()
+                        await callback.message.edit_text(f"🏆 <b>ПОБЕДА!</b>{poison_msg}\n⚡ Титан улетел, а враг умер от яда.", reply_markup=None)
+                        await callback.answer(); return
+                else:
+                    poison_msg = ""
                 game["pending_crash"] = shooter_id 
                 game["crash_turns"] = 2            
                 game["turn"] = target["id"]        
@@ -1670,6 +1686,12 @@ async def duel_handler(callback: types.CallbackQuery):
                         titan = game["p1"] if game["p1"]["id"] == titan_id else game["p2"]
                         enemy_pl = game["p1"] if game["p1"]["id"] != titan_id else game["p2"]
                         game["pending_crash"] = None
+
+                    # ТИК ЯДА (У защитника, если он отравлен)
+                    if shooter["poison_turns"] > 0:
+                        shooter["hp"] -= 9
+                        shooter["poison_turns"] -= 1
+                        log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд (-9 HP)"
                         
                         if random.randint(1, 100) <= 17:
                             enemy_pl["hp"] = 0
@@ -2249,6 +2271,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
