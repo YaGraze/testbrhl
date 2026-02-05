@@ -1421,7 +1421,7 @@ async def duel_handler(callback: types.CallbackQuery):
                     caster["buff_dmg"] = 0 # Сгорает
                     log_msg += f"\n<tg-emoji emoji-id='5472158054478810637'>💥</tg-emoji> <b>СИЯЮЩИЙ ЯД!</b> ({poison_dmg} урона)"
                 else:
-                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-12 HP)!"
+                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {enemy['name']} (-12 HP)!"
 
                 # 2. КОМБО С ПОЖИРАНИЕМ
                 if caster["buff_heal"]:
@@ -2277,6 +2277,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
