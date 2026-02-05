@@ -872,7 +872,6 @@ async def stats_command(message: types.Message):
     weapons = {
         "<tg-emoji emoji-id='5244894167863166109'>🃏</tg-emoji> Ace of Spades": data.get('w_ace', 0),
         "<tg-emoji emoji-id='5472003139303409777'>🤠</tg-emoji> Last Word": data.get('w_lw', 0),
-        "<tg-emoji emoji-id='5199852661146422050'>🧪</tg-emoji> Thorn": data.get('w_thorn', 0),
         "<tg-emoji emoji-id='5471959145953396609'>🔥</tg-emoji> Golden Gun": data.get('w_gg', 0),
         "<tg-emoji emoji-id='5469821755478547431'>🔮</tg-emoji> Nova Bomb": data.get('w_nova', 0),
         "<tg-emoji emoji-id='5472214494644045946'>⚡️</tg-emoji> ThunderCrash": data.get('w_crash', 0)
@@ -2278,6 +2277,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
