@@ -872,6 +872,7 @@ async def stats_command(message: types.Message):
     weapons = {
         "<tg-emoji emoji-id='5244894167863166109'>🃏</tg-emoji> Ace of Spades": data.get('w_ace', 0),
         "<tg-emoji emoji-id='5472003139303409777'>🤠</tg-emoji> Last Word": data.get('w_lw', 0),
+        "<tg-emoji emoji-id='5199852661146422050'>🧪</tg-emoji> Thorn": data.get('w_thorn', 0),
         "<tg-emoji emoji-id='5471959145953396609'>🔥</tg-emoji> Golden Gun": data.get('w_gg', 0),
         "<tg-emoji emoji-id='5469821755478547431'>🔮</tg-emoji> Nova Bomb": data.get('w_nova', 0),
         "<tg-emoji emoji-id='5472214494644045946'>⚡️</tg-emoji> ThunderCrash": data.get('w_crash', 0)
@@ -1087,7 +1088,7 @@ async def duel_command(message: types.Message, command: CommandObject):
         f"<b><tg-emoji emoji-id='5334544901428229844'>ℹ️</tg-emoji> Оружие на выбор:</b>\n"
         f"<tg-emoji emoji-id='5244894167863166109'>🃏</tg-emoji> - Пиковый Туз;\n"
         f"<tg-emoji emoji-id='5472003139303409777'>🤠</tg-emoji> - Ластворд;\n"
-        f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> - Шип.\n\n"
+        f"<tg-emoji emoji-id='5199852661146422050'>🧪</tg-emoji> - Шип.\n\n"
         f"<b>{def_name}</b>, ты принимаешь бой?",
         reply_markup=keyboard
     )
@@ -1413,7 +1414,7 @@ async def duel_handler(callback: types.CallbackQuery):
 
             # ТИК ЯДА + КОМБО С БАФФОМ
             if enemy["poison_turns"] > 0:
-                poison_dmg = 9
+                poison_dmg = 12
                 
                 # 1. КОМБО С СИЯНИЕМ (Если только что включили или висело)
                 if caster["buff_dmg"] > 0:
@@ -1421,7 +1422,7 @@ async def duel_handler(callback: types.CallbackQuery):
                     caster["buff_dmg"] = 0 # Сгорает
                     log_msg += f"\n<tg-emoji emoji-id='5472158054478810637'>💥</tg-emoji> <b>СИЯЮЩИЙ ЯД!</b> ({poison_dmg} урона)"
                 else:
-                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-9 HP)!"
+                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-12 HP)!"
 
                 # 2. КОМБО С ПОЖИРАНИЕМ
                 if caster["buff_heal"]:
@@ -1525,7 +1526,7 @@ async def duel_handler(callback: types.CallbackQuery):
                     shooter["ace_streak"] = shooter.get("ace_streak", 0)
                     
                     base_chance = 50
-                    crit_chance = 10 if shooter["ace_streak"] == 1 else 0
+                    crit_chance = 28 if shooter["ace_streak"] == 1 else 0
                     
                     roll = random.randint(1, 100)
                     
@@ -1549,8 +1550,8 @@ async def duel_handler(callback: types.CallbackQuery):
                     
                     shots_log = []
                     for _ in range(8):
-                        if random.randint(1, 100) <= 34:
-                            damage += 5
+                        if random.randint(1, 100) <= 50:
+                            damage += 4
                             hits_count += 1
                             shots_log.append("💥")
                         else:
@@ -1568,19 +1569,19 @@ async def duel_handler(callback: types.CallbackQuery):
 
                 elif weapon_type == "thorn":
                     update_usage(shooter_id, "w_thorn")
-                    weapon_name = "<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Шип"
+                    weapon_name = "<tg-emoji emoji-id='5199852661146422050'>🧪</tg-emoji> Шип"
                     shooter["ace_streak"] = 0
                 
                     if random.randint(1, 100) <= 50:
                         hit = True
-                        damage = 20
+                        damage = 22
                         
                         # Если яд уже был, он тикает ПЕРЕД обновлением
                         if target["poison_turns"] > 0:
-                            damage += 9 # Добавляем тик яда к урону выстрела
-                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (29 урона + Яд)"
+                            damage += 12 # Добавляем тик яда к урону выстрела
+                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (34 урона + Яд)"
                         else:
-                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (20 урона + Яд)."
+                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (22 урона + Яд)."
                             
                         target["poison_turns"] = 1 # Обновляем таймер
                     else:
@@ -1606,9 +1607,9 @@ async def duel_handler(callback: types.CallbackQuery):
                     
                 # --- ТИК ЯДА ПЕРЕД ПОЛЕТОМ ---
                 if target["poison_turns"] > 0:
-                    target["hp"] -= 9
+                    target["hp"] -= 12
                     target["poison_turns"] -= 1
-                    poison_msg = f"\n🧪 Яд сжигает {target['name']} (-9 HP)!"
+                    poison_msg = f"\n🧪 Яд сжигает {target['name']} (-12 HP)!"
                     if target["hp"] <= 0:
                         # (Победа Титана)
                         target["hp"] = 0
@@ -1661,9 +1662,9 @@ async def duel_handler(callback: types.CallbackQuery):
             is_new_poison = (action == "duel_shoot_primary" and shooter["weapon"] == "thorn" and hit)
             
             if target["poison_turns"] > 0 and not is_new_poison:
-                target["hp"] -= 9
+                target["hp"] -= 12
                 target["poison_turns"] -= 1
-                log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-9 HP)!"
+                log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-12 HP)!"
                 if target["hp"] < 0: target["hp"] = 0
 
             # 3. ПРОВЕРКА ПОБЕДЫ (От выстрела ИЛИ от яда)
@@ -1689,9 +1690,15 @@ async def duel_handler(callback: types.CallbackQuery):
 
                     # ТИК ЯДА (У защитника, если он отравлен)
                     if shooter["poison_turns"] > 0:
-                        shooter["hp"] -= 9
+                        shooter["hp"] -= 12
                         shooter["poison_turns"] -= 1
-                        log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд (-9 HP)"
+                        log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд (-12 HP)"
+                        if shooter["hp"] <= 0:
+                            shooter["hp"] = 0
+                            update_duel_stats(titan['id'], True); update_duel_stats(shooter['id'], False)
+                            del ACTIVE_DUELS[game_id]; save_duels()
+                            await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {shooter['name']} погиб от яда, пытаясь сбить Титана!", reply_markup=None)
+                            await callback.answer(); return
                         
                         if random.randint(1, 100) <= 17:
                             enemy_pl["hp"] = 0
@@ -2271,6 +2278,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
