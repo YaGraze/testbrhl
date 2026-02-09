@@ -260,6 +260,7 @@ async def get_destiny_stats(bungie_name):
             
             # Ранг Стража
             guardian_rank = profile["profile"]["data"]["currentGuardianRank"]
+            active_score = profile["profileRecords"]["data"]["activeScore"]
             
             # Персонажи и Время
             chars = profile["characters"]["data"]
@@ -288,14 +289,17 @@ async def get_destiny_stats(bungie_name):
             # В "allPvE" нет отдельного поля "raids cleared", есть только общее.
             # Чтобы получить точное число рейдов, нужно лезть в "raid" mode (4).
             
-        # 4. Статистика именно Рейдов (Mode = 4)
-        url_raid = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Account/{mem_id}/Stats/?modes=4"
+        # 4. Статистика Рейдов (Исправленная)
+        # Запрашиваем "AllTime" стату по рейдам
+        url_raid = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Account/{mem_id}/Stats/?groups=General,Medals&modes=4"
         async with session.get(url_raid, headers=headers) as resp:
             raid_data = await resp.json()
             try:
+                # Bungie часто прячет это глубоко
                 raids = raid_data["Response"]["mergedAllCharacters"]["results"]["raid"]["allTime"]["activitiesCleared"]["basic"]["displayValue"]
             except:
-                raids = "0"
+                # Если merged не сработал, пробуем сложить по персонажам (сложно, пока ставим 0 или "Скрыто")
+                raids = "Скрыто/0"
 
     return {
         "rank": guardian_rank,
@@ -2413,6 +2417,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
