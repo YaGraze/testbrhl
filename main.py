@@ -253,14 +253,14 @@ async def get_destiny_stats(bungie_name):
 
         # 2. Получение профиля (Ранг, Персонажи)
         # Components: 100 (Profile), 200 (Characters), 1100 (Metrics - для трекеров)
-        url_profile = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Profile/{mem_id}/?components=100,200"
+        url_profile = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Profile/{mem_id}/?components=100,200,900"
         async with session.get(url_profile, headers=headers) as resp:
             data = await resp.json()
             profile = data["Response"]
             
             # Ранг Стража
             guardian_rank = profile["profile"]["data"]["currentGuardianRank"]
-            active_score = profile["profileRecords"]["data"]["activeScore"]
+            triumph_score = profile["profileRecords"]["data"]["activeScore"]
             
             # Персонажи и Время
             chars = profile["characters"]["data"]
@@ -587,6 +587,7 @@ async def d2stat_command(message: types.Message, command: CommandObject):
             f"📊 <b>ДОСЬЕ СТРАЖА:</b> {bungie_name}\n\n"
             f"🎖 <b>Ранг:</b> {data['rank']}\n"
             f"⏳ <b>Время в игре:</b> {data['hours']} ч.\n"
+            f"🏆 <b>Триумфы:</b> {data['triumph']}\n"
             f"❤️ <b>Мейн:</b> {data['class']}\n"
             f"⚔️ <b>PvP K/D:</b> {data['kd']}\n"
             f"🏰 <b>Рейдов закрыто:</b> {data['raids']}"
@@ -2417,6 +2418,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
