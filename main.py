@@ -20,6 +20,8 @@ from openai import AsyncOpenAI
 
 #-------------------------------------------------------------------------------------------------------------------ПЕРЕМЕННЫЕ И НАСТРОЙКИ
 
+BUNGIE_API_KEY = "58ae872eeddb40758274693fd5a48e5c" 
+
 BOT_TOKEN = "8232116536:AAGlz50QniyVCZz1gC6yXHzWNntPUinMcSU"
 OPENAI_API_KEY = "sk-Vcafcxlv" 
 
@@ -226,6 +228,81 @@ cursor.execute('''
 conn.commit()
 
 #-------------------------------------------------------------------------------------------------------------------ФУНКЦИИ БД
+
+async def get_destiny_stats(bungie_name):
+    """Ищет игрока и собирает статистику"""
+    headers = {"X-API-Key": BUNGIE_API_KEY}
+    
+    # 1. Поиск игрока (Bungie Name -> Membership ID)
+    # Формат BungieName: Name#1234
+    if "#" not in bungie_name: return "Неверный формат. Нужно Name#1234"
+    
+    name, code = bungie_name.split("#")
+    
+    async with aiohttp.ClientSession() as session:
+        # Поиск по Bungie Name
+        payload = {"displayName": name, "displayNameCode": code}
+        async with session.post("https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayerByBungieName/All/", json=payload, headers=headers) as resp:
+            data = await resp.json()
+            if not data["Response"]: return "Страж не найден."
+            
+            user = data["Response"][0]
+            mem_id = user["membershipId"]
+            mem_type = user["membershipType"]
+
+        # 2. Получение профиля (Ранг, Персонажи)
+        # Components: 100 (Profile), 200 (Characters), 1100 (Metrics - для трекеров)
+        url_profile = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Profile/{mem_id}/?components=100,200"
+        async with session.get(url_profile, headers=headers) as resp:
+            data = await resp.json()
+            profile = data["Response"]
+            
+            # Ранг Стража
+            guardian_rank = profile["profile"]["data"]["currentGuardianRank"]
+            
+            # Персонажи и Время
+            chars = profile["characters"]["data"]
+            total_minutes = 0
+            classes = {"0": "Titan", "1": "Hunter", "2": "Warlock"}
+            class_counts = {"Titan": 0, "Hunter": 0, "Warlock": 0}
+            
+            for char in chars.values():
+                total_minutes += int(char["minutesPlayedTotal"])
+                class_name = classes.get(str(char["classType"]), "Unknown")
+                class_counts[class_name] += int(char["minutesPlayedTotal"])
+            
+            hours = total_minutes // 60
+            fav_class = max(class_counts, key=class_counts.get) # Кто больше наигран
+
+        # 3. Получение статистики аккаунта (K/D, Рейды)
+        url_stats = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Account/{mem_id}/Stats/"
+        async with session.get(url_stats, headers=headers) as resp:
+            stats = await resp.json()
+            all_pvp = stats["Response"]["mergedAllCharacters"]["results"]["allPvP"]["allTime"]
+            all_pve = stats["Response"]["mergedAllCharacters"]["results"]["allPvE"]["allTime"]
+            
+            kd = all_pvp["killsDeathsRatio"]["basic"]["displayValue"]
+            
+            # Количество рейдов (Raid clears)
+            # В "allPvE" нет отдельного поля "raids cleared", есть только общее.
+            # Чтобы получить точное число рейдов, нужно лезть в "raid" mode (4).
+            
+        # 4. Статистика именно Рейдов (Mode = 4)
+        url_raid = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Account/{mem_id}/Stats/?modes=4"
+        async with session.get(url_raid, headers=headers) as resp:
+            raid_data = await resp.json()
+            try:
+                raids = raid_data["Response"]["mergedAllCharacters"]["results"]["raid"]["allTime"]["activitiesCleared"]["basic"]["displayValue"]
+            except:
+                raids = "0"
+
+    return {
+        "rank": guardian_rank,
+        "hours": hours,
+        "class": fav_class,
+        "kd": kd,
+        "raids": raids
+    }
 
 DUELS_FILE = os.path.join(DATA_DIR, "duels.json")
 def load_duels():
@@ -485,8 +562,66 @@ def update_msg_stats(user_id):
         pass
 
 #-------------------------------------------------------------------------------------------------------------------ХЕНДЛЕРЫ
+@dp.message(Command("d2stat"))
+async def d2stat_command(message: types.Message, command: CommandObject):
+    bungie_name = command.args
+    if not bungie_name:
+        await message.reply("Укажи Bungie Name. Пример: `/d2stat Zavala#1234`")
+        return
+        
+    msg = await message.reply("⏳ Связываюсь с серверами Авангарда...")
+    
+    try:
+        data = await get_destiny_stats(bungie_name)
+        
+        if isinstance(data, str): # Если вернулась ошибка текстом
+            await msg.edit_text(f"❌ {data}")
+            return
+
+        text = (
+            f"📊 <b>ДОСЬЕ СТРАЖА:</b> {bungie_name}\n\n"
+            f"🎖 <b>Ранг:</b> {data['rank']}\n"
+            f"⏳ <b>Время в игре:</b> {data['hours']} ч.\n"
+            f"❤️ <b>Мейн:</b> {data['class']}\n"
+            f"⚔️ <b>PvP K/D:</b> {data['kd']}\n"
+            f"🏰 <b>Рейдов закрыто:</b> {data['raids']}"
+        )
+        
+        await msg.edit_text(text)
+        
+    except Exception as e:
+        await msg.edit_text(f"Ошибка API: {e}")
 
 #-------------------------------------------------------------------------------------------------------------------СТАТА ЧАТА
+@dp.message(Command("d2stat"))
+async def d2stat_command(message: types.Message, command: CommandObject):
+    bungie_name = command.args
+    if not bungie_name:
+        await message.reply("Укажи Bungie Name. Пример: `/d2stat Zavala#1234`")
+        return
+        
+    msg = await message.reply("⏳ Связываюсь с серверами Авангарда...")
+    
+    try:
+        data = await get_destiny_stats(bungie_name)
+        
+        if isinstance(data, str): # Если вернулась ошибка текстом
+            await msg.edit_text(f"❌ {data}")
+            return
+
+        text = (
+            f"📊 <b>ДОСЬЕ СТРАЖА:</b> {bungie_name}\n\n"
+            f"🎖 <b>Ранг:</b> {data['rank']}\n"
+            f"⏳ <b>Время в игре:</b> {data['hours']} ч.\n"
+            f"❤️ <b>Мейн:</b> {data['class']}\n"
+            f"⚔️ <b>PvP K/D:</b> {data['kd']}\n"
+            f"🏰 <b>Рейдов закрыто:</b> {data['raids']}"
+        )
+        
+        await msg.edit_text(text)
+        
+    except Exception as e:
+        await msg.edit_text(f"Ошибка API: {e}")
 
 # --- ОТПРАВКА ОТ ЛИЦА БОТА (С СОХРАНЕНИЕМ ЭМОДЗИ И ФОРМАТА) ---
 @dp.message(Command("send"))
@@ -2277,6 +2412,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
