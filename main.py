@@ -304,6 +304,7 @@ async def get_destiny_stats(bungie_name):
     return {
         "rank": guardian_rank,
         "hours": hours,
+        "triumph": triumph_score
         "class": fav_class,
         "kd": kd,
         "raids": raids
@@ -2418,6 +2419,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
