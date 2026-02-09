@@ -8,6 +8,7 @@ import json
 import sqlite3
 import pytz
 import yt_dlp
+import aiohttp
 from aiogram.utils.text_decorations import html_decoration as hd
 from apscheduler.schedulers.asyncio import AsyncIOScheduler # Для расписания
 from aiogram import Bot, Dispatcher, types, F, BaseMiddleware
@@ -2412,6 +2413,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
