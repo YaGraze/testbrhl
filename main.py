@@ -231,83 +231,71 @@ conn.commit()
 #-------------------------------------------------------------------------------------------------------------------ФУНКЦИИ БД
 
 async def get_destiny_stats(bungie_name):
-    """Ищет игрока и собирает статистику"""
     headers = {"X-API-Key": BUNGIE_API_KEY}
     
-    # 1. Поиск игрока (Bungie Name -> Membership ID)
-    # Формат BungieName: Name#1234
     if "#" not in bungie_name: return "Неверный формат. Нужно Name#1234"
-    
     name, code = bungie_name.split("#")
     
     async with aiohttp.ClientSession() as session:
-        # Поиск по Bungie Name
+        # 1. Поиск
         payload = {"displayName": name, "displayNameCode": code}
         async with session.post("https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayerByBungieName/All/", json=payload, headers=headers) as resp:
             data = await resp.json()
             if not data["Response"]: return "Страж не найден."
-            
             user = data["Response"][0]
             mem_id = user["membershipId"]
             mem_type = user["membershipType"]
 
-        # 2. Получение профиля (Ранг, Персонажи)
-        # Components: 100 (Profile), 200 (Characters), 1100 (Metrics - для трекеров)
+        # 2. Профиль (100, 200, 900)
         url_profile = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Profile/{mem_id}/?components=100,200,900"
         async with session.get(url_profile, headers=headers) as resp:
             data = await resp.json()
             profile = data["Response"]
             
-            # Ранг Стража
             guardian_rank = profile["profile"]["data"]["currentGuardianRank"]
             triumph_score = profile["profileRecords"]["data"]["activeScore"]
             
-            # Персонажи и Время
             chars = profile["characters"]["data"]
+            character_ids = list(chars.keys()) # Список ID персонажей
+            
+            # Считаем часы и класс
             total_minutes = 0
             classes = {"0": "Titan", "1": "Hunter", "2": "Warlock"}
             class_counts = {"Titan": 0, "Hunter": 0, "Warlock": 0}
-            
             for char in chars.values():
                 total_minutes += int(char["minutesPlayedTotal"])
-                class_name = classes.get(str(char["classType"]), "Unknown")
-                class_counts[class_name] += int(char["minutesPlayedTotal"])
-            
+                c_name = classes.get(str(char["classType"]), "Unknown")
+                class_counts[c_name] += int(char["minutesPlayedTotal"])
             hours = total_minutes // 60
-            fav_class = max(class_counts, key=class_counts.get) # Кто больше наигран
+            fav_class = max(class_counts, key=class_counts.get)
 
-        # 3. Получение статистики аккаунта (K/D, Рейды)
+        # 3. K/D (Общее)
         url_stats = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Account/{mem_id}/Stats/"
         async with session.get(url_stats, headers=headers) as resp:
             stats = await resp.json()
-            all_pvp = stats["Response"]["mergedAllCharacters"]["results"]["allPvP"]["allTime"]
-            all_pve = stats["Response"]["mergedAllCharacters"]["results"]["allPvE"]["allTime"]
-            
-            kd = all_pvp["killsDeathsRatio"]["basic"]["displayValue"]
-            
-            # Количество рейдов (Raid clears)
-            # В "allPvE" нет отдельного поля "raids cleared", есть только общее.
-            # Чтобы получить точное число рейдов, нужно лезть в "raid" mode (4).
-            
-        # 4. Статистика Рейдов (Исправленная)
-        # Запрашиваем "AllTime" стату по рейдам
-        url_raid = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Account/{mem_id}/Stats/?groups=General,Medals&modes=4"
-        async with session.get(url_raid, headers=headers) as resp:
-            raid_data = await resp.json()
             try:
-                # Bungie часто прячет это глубоко
-                raids = raid_data["Response"]["mergedAllCharacters"]["results"]["raid"]["allTime"]["activitiesCleared"]["basic"]["displayValue"]
+                kd = stats["Response"]["mergedAllCharacters"]["results"]["allPvP"]["allTime"]["killsDeathsRatio"]["basic"]["displayValue"]
             except:
-                # Если merged не сработал, пробуем сложить по персонажам (сложно, пока ставим 0 или "Скрыто")
-                raids = "Скрыто/0"
+                kd = "0.0"
+
+        # 4. РЕЙДЫ (Суммируем по персонажам)
+        total_raids = 0
+        for char_id in character_ids:
+            url_char_raid = f"https://www.bungie.net/Platform/Destiny2/{mem_type}/Account/{mem_id}/Character/{char_id}/Stats/?modes=4"
+            async with session.get(url_char_raid, headers=headers) as resp:
+                char_data = await resp.json()
+                try:
+                    clears = char_data["Response"]["raid"]["allTime"]["activitiesCleared"]["basic"]["value"]
+                    total_raids += int(clears)
+                except: pass
 
     return {
         "rank": guardian_rank,
         "hours": hours,
-        "triumph": triumph_score,
         "class": fav_class,
         "kd": kd,
-        "raids": raids
+        "raids": total_raids, # Теперь это число (int)
+        "triumph": triumph_score
     }
 
 DUELS_FILE = os.path.join(DATA_DIR, "duels.json")
@@ -2419,6 +2407,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
