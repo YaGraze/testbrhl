@@ -1137,6 +1137,22 @@ async def summary_command(message: types.Message):
         asyncio.create_task(delete_later(msg, 10))
 
 #-------------------------------------------------------------------------------------------------------------------DUEL RPG
+CLASS_ICONS = {
+    # КРАСНЫЕ (Игрок 1 / Атакующий)
+    "p1_hunter": "<tg-emoji emoji-id='5224477718699087098'>🐍</tg-emoji>",
+    "p1_warlock": "<tg-emoji emoji-id='5224220660611457213'>🦅</tg-emoji>",
+    "p1_titan": "<tg-emoji emoji-id='5224596865386842527'>🦁</tg-emoji>",
+    
+    # СИНИЕ (Игрок 2 / Защитник)
+    "p2_hunter": "<tg-emoji emoji-id='5224673028041903796'>🐍</tg-emoji>",
+    "p2_warlock": "<tg-emoji emoji-id='5224477937742414397'>🦅</tg-emoji>",
+    "p2_titan": "<tg-emoji emoji-id='5224305310121892751'>🦁</tg-emoji>",
+    
+    # НЕЙТРАЛЬНЫЕ (Меню выбора / Старт)
+    "neutral_1": "<tg-emoji emoji-id='5226565403517423086'>👶</tg-emoji>",
+    "neutral_2": "<tg-emoji emoji-id='5226508538150423514'>👧</tg-emoji>"
+}
+
 @dp.message(Command("duel"))
 async def duel_command(message: types.Message, command: CommandObject):
     # Инициализация переменных
@@ -1208,12 +1224,12 @@ async def duel_command(message: types.Message, command: CommandObject):
     
     await message.answer(
         f"{intro}"
-        f"<b><tg-emoji emoji-id='5469797093776332017'>👤</tg-emoji> Страж №1:</b> {att_name}\n"
-        f"<b><tg-emoji emoji-id='5469982881176653032'>👤</tg-emoji> Страж №2:</b> {def_name}\n\n"
+        f"<b>{CLASS_ICONS['neutral_1']} Страж №1:</b> {att_name}\n"
+        f"<b>{CLASS_ICONS['neutral_2']} Страж №2:</b> {def_name}\n\n"
         f"<b><tg-emoji emoji-id='5334544901428229844'>ℹ️</tg-emoji> Сетапы классов:</b>\n"
-        f"<tg-emoji emoji-id='5330515960111583947'>🐍</tg-emoji> - Ханты: ГГ & Сияние;\n"
-        f"<tg-emoji emoji-id='5330564987163267533'>🦅</tg-emoji> - Варлоки: Нова & Пожирание;\n"
-        f"<tg-emoji emoji-id='5330353116426551101'>🦁</tg-emoji> - Титаны: ТКраш & Усиление.\n"
+        f"<tg-emoji emoji-id='5224674368071699727'>🐍</tg-emoji> - Ханты: ГГ & Сияние;\n"
+        f"<tg-emoji emoji-id='5224259534360447096'>🦅</tg-emoji> - Варлоки: Нова & Пожирание;\n"
+        f"<tg-emoji emoji-id='5224282319161954546'>🦁</tg-emoji> - Титаны: ТКраш & Усиление.\n"
         f"<b><tg-emoji emoji-id='5334544901428229844'>ℹ️</tg-emoji> Оружие на выбор:</b>\n"
         f"<tg-emoji emoji-id='5244894167863166109'>🃏</tg-emoji> - Пиковый Туз;\n"
         f"<tg-emoji emoji-id='5472003139303409777'>🤠</tg-emoji> - Ластворд;\n"
@@ -1238,8 +1254,8 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     game["last_update"] = now
     
     def get_hp_bar(hp):
-        blocks = int(hp / 10) 
-        return "▓" * blocks + "░" * (10 - blocks)
+        blocks = int(hp / 12) 
+        return "▓" * blocks + "░" * (12 - blocks)
 
     p1 = game["p1"]
     p2 = game["p2"]
@@ -1249,7 +1265,7 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     current_weapon = current_player["weapon"] # ace или lw
     current_name = current_player["name"]
 
-    ru_classes = {"hunter": "<tg-emoji emoji-id='5330515960111583947'>🐍</tg-emoji>", "warlock": "<tg-emoji emoji-id='5330564987163267533'>🦅</tg-emoji>", "titan": "<tg-emoji emoji-id='5330353116426551101'>🦁</tg-emoji>"}
+    ru_classes = {"hunter": "<tg-emoji emoji-id='5224674368071699727'>🐍</tg-emoji>", "warlock": "<tg-emoji emoji-id='5224259534360447096'>🦅</tg-emoji>", "titan": "<tg-emoji emoji-id='5224282319161954546'>🦁</tg-emoji>"}
     title = f"{ru_classes[p1['class']]} vs {ru_classes[p2['class']]}"
 
     flying_status = ""
@@ -1264,11 +1280,14 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     p2_status = ""
     if p2["poison_turns"] > 0: p2_status = " 🧪 (Яд)"
 
+    icon1 = CLASS_ICONS.get(f"p1_{p1['class']}", CLASS_ICONS["neutral_1"])
+    icon2 = CLASS_ICONS.get(f"p2_{p2['class']}", CLASS_ICONS["neutral_2"])
+    
     text = (
         f"<tg-emoji emoji-id='5408935401442267103'>⚔️</tg-emoji> <b>{title}</b>\n\n"
-        f"<tg-emoji emoji-id='5469797093776332017'>👤</tg-emoji> <b>{p1['name']}</b>: {p1['hp']} HP{p1_status}\n"
+        f"{icon1} <b>{p1['name']}</b>: {p1['hp']} HP{p1_status}\n"
         f"[{get_hp_bar(p1['hp'])}]\n\n"
-        f"<tg-emoji emoji-id='5469982881176653032'>👤</tg-emoji> <b>{p2['name']}</b>: {p2['hp']} HP{p2_status}\n"
+        f"{icon2} <b>{p2['name']}</b>: {p2['hp']} HP{p2_status}\n"
         f"[{get_hp_bar(p2['hp'])}]\n\n"
         f"<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> <i>Лог: {game['log']}</i>{flying_status}{def_status}\n\n"
         f"<b>— Ход:</b> {current_name} ({ru_classes[current_class]})"
@@ -1384,10 +1403,14 @@ async def duel_class_handler(callback: types.CallbackQuery):
         
         await update_duel_message(callback, game_id)
     else:
+
+        icon1 = CLASS_ICONS.get(f"p1_{game['p1']['class']}", CLASS_ICONS["neutral_1"])
+        icon2 = CLASS_ICONS.get(f"p2_{game['p2']['class']}", CLASS_ICONS["neutral_2"])
+        
         text = (
             f"<tg-emoji emoji-id='5442864698187856287'>👜</tg-emoji> <b>ВЫБОР СНАРЯЖЕНИЯ</b>\n\n"
-            f"<tg-emoji emoji-id='5469797093776332017'>👤</tg-emoji> <b>{game['p1']['name']}:</b> {get_status(game['p1'])}\n"
-            f"<tg-emoji emoji-id='5469982881176653032'>👤</tg-emoji> <b>{game['p2']['name']}:</b> {get_status(game['p2'])}\n\n"
+            f"{icon1} <b>{game['p1']['name']}:</b> {get_status(game['p1'])}\n"
+            f"{icon2} <b>{game['p2']['name']}:</b> {get_status(game['p2'])}\n\n"
             f"1. Выбери Класс\n2. Выбери Оружие"
         )
         try: await callback.message.edit_text(text, reply_markup=callback.message.reply_markup)
@@ -1463,16 +1486,18 @@ async def duel_handler(callback: types.CallbackQuery):
 
         ACTIVE_DUELS[game_id] = {
             "p1": {
-                "id": attacker_id, "name": att_name, "hp": 100, 
+                "id": attacker_id, "name": att_name, "hp": 120, 
                 "class": None, "weapon": None, # Новое поле
                 "ace_streak": 0, "poison_turns": 0, "buff_dmg": 0, "buff_heal": False, "buff_def": 0
             },
             "p2": {
-                "id": defender_id, "name": def_name, "hp": 100, 
+                "id": defender_id, "name": def_name, "hp": 120, 
                 "class": None, "weapon": None, # Новое поле
                 "ace_streak": 0, "poison_turns": 0, "buff_dmg": 0, "buff_heal": False, "buff_def": 0
             },
             "state": "choosing_class",
+            "turn_count": 0,
+            "full_log": [],
             "log": "<tg-emoji emoji-id='5442864698187856287'>👜</tg-emoji> Ожидание выбора снаряжения...",
             "lock": asyncio.Lock()
         }
@@ -1492,10 +1517,13 @@ async def duel_handler(callback: types.CallbackQuery):
         ]
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
+        i1 = CLASS_ICONS["neutral_1"]
+        i2 = CLASS_ICONS["neutral_2"]
+        
         text = (
             f"<tg-emoji emoji-id='5442864698187856287'>👜</tg-emoji> <b>ВЫБОР СНАРЯЖЕНИЯ</b>\n\n"
-            f"<tg-emoji emoji-id='5469797093776332017'>👤</tg-emoji> <b>{att_name}:</b> Выбор...\n"
-            f"<tg-emoji emoji-id='5469982881176653032'>👤</tg-emoji> <b>{def_name}:</b> Выбор...\n\n"
+            f"{i1} <b>{att_name}:</b> Выбор...\n"
+            f"{i2} <b>{def_name}:</b> Выбор...\n\n"
             f"1. Выбери Класс\n2. Выбери Оружие"
         )
 
@@ -1506,14 +1534,17 @@ async def duel_handler(callback: types.CallbackQuery):
 #-------------------------------------------------------------------------------------------------------------------БАФФЫ (АБИЛКИ)
     if action in ["duel_buff_radiant", "duel_buff_devour", "duel_buff_amplify"]:
         game_id = callback.message.message_id
-        if game_id not in ACTIVE_DUELS: return
-        game = ACTIVE_DUELS[game_id]
+
+        if game_id not in GAME_LOCKS:
+            GAME_LOCKS[game_id] = asyncio.Lock()
         
-        async with game["lock"]:
+        async with GAME_LOCKS[game_id]:
+            if game_id not in ACTIVE_DUELS: return
+            game = ACTIVE_DUELS[game_id]
             if callback.from_user.id != game["turn"]:
                 await callback.answer("Не твой ход!", show_alert=True)
                 return
-
+            game["turn_count"] += 1 
             if callback.from_user.id == game["p1"]["id"]:
                 caster, enemy = game["p1"], game["p2"]
             else:
@@ -1521,85 +1552,317 @@ async def duel_handler(callback: types.CallbackQuery):
 
             buff_name = ""
             log_msg = ""
+            combo_triggered = False # Флаг комбо
             
+            # --- СИЯНИЕ (HUNTER) ---
             if action == "duel_buff_radiant" and caster["class"] == "hunter":
-                caster["buff_dmg"] = 10
+                if caster.get("buff_dmg", 0) > 0:
+                    await callback.answer("Сияние уже активно!", show_alert=True); return
+                
+                caster["buff_dmg"] = 10 # Урон следующего выстрела
+                
+                # Мгновенный урон 5
+                enemy["hp"] -= 5
+                if enemy["hp"] < 0: enemy["hp"] = 0
+                
                 buff_name = "💥 Сияние"
-                log_msg = f"{caster['name']} активирует <tg-emoji emoji-id='5472158054478810637'>💥</tg-emoji> <b>Сияние</b>! След. выстрел +10 урона."
+                log_msg = f"{caster['name']} активирует <tg-emoji emoji-id='5472158054478810637'>💥</tg-emoji> <b>Сияние</b>! {enemy['name']} обожжен (-5 HP). След. выстрел +10 урона."
+                timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+                clean_msg = clean_log_text(log_msg)
+                turn_num = game.get("turn_count", 1)
+                game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {clean_msg}")
                 save_duels()
+            # --- ПОЖИРАНИЕ (WARLOCK) ---
             elif action == "duel_buff_devour" and caster["class"] == "warlock":
+                if caster.get("buff_heal"):
+                    await callback.answer("Пожирание уже активно!", show_alert=True); return
+                
                 caster["buff_heal"] = True
+                
+                # Мгновенный хил 4
+                caster["hp"] += 4
+                if caster["hp"] > 135: caster["hp"] = 135 # Кап 135
+                
                 buff_name = "🩸 Пожирание"
-                log_msg = f"{caster['name']} активирует <tg-emoji emoji-id='5474317667114457231'>🩸</tg-emoji> <b>Пожирание</b>! След. попадание исцелит 10 HP."
+                log_msg = f"{caster['name']} активирует <tg-emoji emoji-id='5474317667114457231'>🩸</tg-emoji> <b>Пожирание</b>! Восстановлено 4 HP. След. попадание исцелит 11 HP."
+                timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+                clean_msg = clean_log_text(log_msg)
+                turn_num = game.get("turn_count", 1)
+                game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {clean_msg}")
                 save_duels()
+            # --- УСИЛЕНИЕ (TITAN) ---
             elif action == "duel_buff_amplify" and caster["class"] == "titan":
-                caster["buff_def"] = 10
+                if caster.get("buff_def", 0) > 0:
+                    await callback.answer("Усиление уже активно!", show_alert=True); return
+                
+                caster["buff_def"] = 15
                 buff_name = "⚡️ Усиление"
-                log_msg = f"{caster['name']} получает <tg-emoji emoji-id='5472175852823282918'>⚡️</tg-emoji> <b>Усиление</b>! След. урон по нему снижен на 10."
-                save_duels()
+                log_msg = f"{caster['name']} получает <tg-emoji emoji-id='5472175852823282918'>⚡️</tg-emoji> <b>Усиление</b>! След. урон по нему снижен на 15."
             else:
                 await callback.answer("Не твой класс!", show_alert=True)
                 return
 
-            # ТИК ЯДА + КОМБО С БАФФОМ
-            if enemy["poison_turns"] > 0:
-                poison_dmg = 12
+            # ПРОВЕРКА ПОБЕДЫ (ЕСЛИ УБИЛ СИЯНИЕМ)
+            if enemy["hp"] <= 0:
+                update_duel_stats(caster['id'], True); update_duel_stats(enemy['id'], False)
                 
-                # 1. КОМБО С СИЯНИЕМ (Если только что включили или висело)
-                if caster["buff_dmg"] > 0:
-                    poison_dmg += caster["buff_dmg"]
-                    caster["buff_dmg"] = 0 # Сгорает
-                    log_msg += f"\n<tg-emoji emoji-id='5472158054478810637'>💥</tg-emoji> <b>СИЯЮЩИЙ ЯД!</b> ({poison_dmg} урона)"
-                else:
-                    log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {enemy['name']} (-12 HP)!"
+                unique_log = []
+                if game.get("full_log"):
+                    prev_line = ""
+                    for line in game["full_log"]:
+                        # Сравниваем с предыдущей строкой (игнорируя пробелы)
+                        if line.strip() != prev_line.strip():
+                            unique_log.append(line)
+                            prev_line = line
+                
+                # Создаем итоговый текст из уникальных строк
+                log_content = "\n".join(unique_log)
+                file_name = f"duel_log_{game_id}.txt"
+                
+                winner_name = caster['name']
+                # (или возьми shooter['name'], если это блок стрельбы)
+                
+                with open(file_name, "w", encoding="utf-8") as f:
+                    f.write(
+                        f"⚔️ ДУЭЛЬ: {game['p1']['name']} vs {game['p2']['name']}\n"
+                        f"🏆 ПОБЕДИТЕЛЬ: {winner_name}\n"
+                        f"🔢 ВСЕГО ХОДОВ: {turn_num}\n\n"
+                        f"{log_content}"
+                    )
+                
+                # Отправляем файл
+                log_file = FSInputFile(file_name)
+                msg = await bot.send_document(
+                    chat_id=callback.message.chat.id,
+                    document=log_file,
+                    caption="<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> Логи Дуэли",
+                    reply_to_message_id=callback.message.message_id
+                )
+                asyncio.create_task(delete_later(msg, 180))
+                os.remove(file_name) # Удаляем файл с диска
+                
+                del ACTIVE_DUELS[game_id]; save_duels()
+                if game_id in GAME_LOCKS: del GAME_LOCKS[game_id]
+                
+                await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5312241539987020022'>🔥</tg-emoji> {enemy['name']} сгорел заживо!", reply_markup=None)
+                await callback.answer(); return
 
-                # 2. КОМБО С ПОЖИРАНИЕМ
-                if caster["buff_heal"]:
-                    caster["hp"] += 10
-                    if caster["hp"] > 100: caster["hp"] = 100
-                    caster["buff_heal"] = False # Сгорает
-                    log_msg += " (<tg-emoji emoji-id='5474317667114457231'>🩸</tg-emoji> +10 HP)"
-
-                # Наносим урон
-                enemy["hp"] -= poison_dmg
+            # --- 2. ТИК ЯДА И КОМБО ---
+            if enemy["poison_turns"] > 0:
+                poison_dmg = 11
                 enemy["poison_turns"] -= 1
+                
+                # КОМБО СИЯНИЯ (Если только что нажали или висело)
+                # Проверяем caster["buff_dmg"], который мы только что поставили
+                if caster.get("buff_dmg", 0) > 0 and action == "duel_buff_radiant":
+                    poison_dmg += 10 # 11 + 10 = 21 урона от яда + 5 от активации = 26
+                    caster["buff_dmg"] = 0 # Тратим бафф
+                    combo_triggered = True
+                    log_msg = f"<tg-emoji emoji-id='5472158054478810637'>💥</tg-emoji> <b>Сияющий яд!</b> {caster['name']} сжигает врага заживо!\n(<b>-26 HP</b>!)"
+                
+                elif caster.get("buff_dmg", 0) > 0:
+                    # Если бафф висел с прошлого хода (не комбо нажатия, а просто стечение обстоятельств)
+                    poison_dmg += 10
+                    caster["buff_dmg"] = 0
+                    log_msg += " (<tg-emoji emoji-id='5472158054478810637'>💥</tg-emoji> +10 dmg от Сияния!)"
+
+                # КОМБО ПОЖИРАНИЯ (Если только что нажали)
+                if caster.get("buff_heal") and action == "duel_buff_devour":
+                    caster["hp"] += 11 # 11 хил от яда + 4 от активации = 15
+                    if caster["hp"] > 135: caster["hp"] = 135
+                    caster["buff_heal"] = False # Тратим бафф
+                    combo_triggered = True
+                    log_msg = f"<tg-emoji emoji-id='5472233882126419653'>🩸</tg-emoji> <b>Исцеляющий яд!</b> {caster['name']} наносит 11 урона!\n(<b>+15 HP</b>!)"
+                
+                elif caster.get("buff_heal"):
+                    # Если висело с прошлого хода
+                    caster["hp"] += 11
+                    if caster["hp"] > 135: caster["hp"] = 135
+                    caster["buff_heal"] = False
+                    log_msg += " (<tg-emoji emoji-id='5472233882126419653'>🩸</tg-emoji> +11 HP от яда!)"
+
+                # УЧЕТ ЩИТА ВРАГА
+                if enemy.get("buff_def", 0) > 0:
+                    blocked = min(poison_dmg, enemy["buff_def"])
+                    poison_dmg -= blocked
+                    enemy["buff_def"] -= blocked
+                    if combo_triggered:
+                        log_msg += f" (<tg-emoji emoji-id='5472175852823282918'>⚡️</tg-emoji> Заблокировано: -{blocked})"
+                    else:
+                        log_msg += f" (<tg-emoji emoji-id='5472175852823282918'>⚡️</tg-emoji> -{blocked})"
+
+                # НАНЕСЕНИЕ УРОНА ЯДОМ
+                enemy["hp"] -= poison_dmg
                 
                 # Проверка смерти
                 if enemy["hp"] <= 0:
                     enemy["hp"] = 0
                     update_duel_stats(caster['id'], True); update_duel_stats(enemy['id'], False)
+                    # ГЕНЕРАЦИЯ ФАЙЛА
+                    unique_log = []
+                    if game.get("full_log"):
+                        prev_line = ""
+                        for line in game["full_log"]:
+                            # Сравниваем с предыдущей строкой (игнорируя пробелы)
+                            if line.strip() != prev_line.strip():
+                                unique_log.append(line)
+                                prev_line = line
+                
+                    # Создаем итоговый текст из уникальных строк
+                    log_content = "\n".join(unique_log)
+                    file_name = f"duel_log_{game_id}.txt"
+                
+                    winner_name = caster['name']
+                # (или возьми shooter['name'], если это блок стрельбы)
+                
+                    with open(file_name, "w", encoding="utf-8") as f:
+                        f.write(
+                            f"⚔️ ДУЭЛЬ: {game['p1']['name']} vs {game['p2']['name']}\n"
+                            f"🏆 ПОБЕДИТЕЛЬ: {winner_name}\n"
+                            f"🔢 ВСЕГО ХОДОВ: {turn_num}\n\n"
+                            f"{log_content}"
+                        )
+                
+                    # Отправляем файл
+                    log_file = FSInputFile(file_name)
+                    msg = await bot.send_document(
+                        chat_id=callback.message.chat.id,
+                        document=log_file,
+                        caption="<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> Логи Дуэли",
+                        reply_to_message_id=callback.message.message_id
+                    )
+                    asyncio.create_task(delete_later(msg, 180))
+                    os.remove(file_name) # Удаляем файл с диска
+                    if game_id in GAME_LOCKS: del GAME_LOCKS[game_id]
                     del ACTIVE_DUELS[game_id]; save_duels()
                     await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {enemy['name']} погиб от яда!", reply_markup=None)
                     await callback.answer(); return
+                    
+            timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+            clean_msg = clean_log_text(log_msg)
+            turn_num = game.get("turn_count", 1)
+            game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {clean_msg}")
+            save_duels()
             
+            # ЛОГИКА ТИТАНА (В БЛОКЕ БАФФОВ)
             flying_titan_id = game.get("pending_crash")
             if flying_titan_id:
+                titan_id = flying_titan_id
+                titan = game["p1"] if game["p1"]["id"] == titan_id else game["p2"]
+                enemy_pl = game["p1"] if game["p1"]["id"] != titan_id else game["p2"]
                 game["crash_turns"] -= 1
                 if game["crash_turns"] <= 0:
-                    titan_id = flying_titan_id
-                    titan = game["p1"] if game["p1"]["id"] == titan_id else game["p2"]
-                    enemy_player = game["p1"] if game["p1"]["id"] != titan_id else game["p2"] # переименовал, чтобы не конфликтовало
-                    
                     game["pending_crash"] = None
                     
-                    if random.randint(1, 100) <= 17:
-                        caster["hp"] = 0
-                        update_duel_stats(titan['id'], True)
-                        update_duel_stats(caster['id'], False)
-                        del ACTIVE_DUELS[game_id]
-                        msg = f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> <b>БУУУМ!</b> {titan['name']} приземляется на тебя! (-100 HP)"
+                    # 1. Прямое попадание (11%)
+                    if random.randint(1, 100) <= 11:
+                        enemy_pl["hp"] = 0
+                        crash_msg = f"<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> <b>БУУУМ!</b> {titan['name']} размазал соперника! (-100 HP)"
+                        timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+                        turn_num = game.get("turn_count", 1)
+                        game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {clean_log_text(crash_msg)}")
+                        update_duel_stats(titan['id'], True); update_duel_stats(enemy_pl['id'], False)
+                        # ГЕНЕРАЦИЯ ФАЙЛА
+                        unique_log = []
+                        if game["full_log"]:
+                            unique_log.append(game["full_log"][0]) # Первая всегда уникальна
+                            for line in game["full_log"][1:]:
+                                if line != unique_log[-1]: # Если не равна предыдущей
+                                    unique_log.append(line)
+                
+                        log_content = "\n".join(unique_log)
+                        file_name = f"duel_log_{game_id}.txt"
+                
+                        winner_name = titan['name']
+                # (или возьми shooter['name'], если это блок стрельбы)
+                
+                        with open(file_name, "w", encoding="utf-8") as f:
+                            f.write(
+                                f"⚔️ ДУЭЛЬ: {game['p1']['name']} vs {game['p2']['name']}\n"
+                                f"🏆 ПОБЕДИТЕЛЬ: {winner_name}\n"
+                                f"🔢 ВСЕГО ХОДОВ: {turn_num}\n\n"
+                                f"{log_content}"
+                            )
+                
+                        # Отправляем файл
+                        log_file = FSInputFile(file_name)
+                        msg = await bot.send_document(
+                            chat_id=callback.message.chat.id,
+                            document=log_file,
+                            caption="<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> Логи Дуэли",
+                            reply_to_message_id=callback.message.message_id
+                        )
+                        asyncio.create_task(delete_later(msg, 180))
+                        os.remove(file_name) # Удаляем файл с диска
+                        if game_id in GAME_LOCKS: del GAME_LOCKS[game_id]
+                        del ACTIVE_DUELS[game_id]; save_duels()
+                        msg = f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n{crash_msg}"
                         await callback.message.edit_text(msg, reply_markup=None)
-                        await callback.answer()
-                        return
+                        await callback.answer(); return
                     else:
-                        log_msg += f"\n\n<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> {titan['name']} промахивается ультой!"
-                        game["turn"] = titan_id
+                        # 2. Промах -> Лужа (20 урона)
+                        splash_dmg = 7
+                        if enemy_pl.get("buff_def", 0) > 0:
+                            blocked = min(splash_dmg, enemy_pl["buff_def"])
+                            splash_dmg -= blocked
+                            enemy_pl["buff_def"] -= blocked
+                        enemy_pl["hp"] -= splash_dmg
+                        if enemy_pl["hp"] < 0: enemy_pl["hp"] = 0
+                            
+                        extra_log = f"\n\n<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> Титан промахнулся, но задел <b>лужей</b> (-7 HP)!"
+
+                        # --- ЗАПИСЬ В ИСТОРИЮ ---
+                        timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+                        # Соединяем log_msg (выстрел врага) и extra_log (приземление)
+                        extra_clean = clean_log_text(extra_log) # (Твоя функция очистки)
+                        game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {extra_clean}")
+                    
+                        # Если враг умер от лужи
+                        if enemy_pl["hp"] <= 0:
+                            update_duel_stats(titan['id'], True); update_duel_stats(enemy_pl['id'], False)
+                            unique_log = []
+                            if game["full_log"]:
+                                unique_log.append(game["full_log"][0]) # Первая всегда уникальна
+                                for line in game["full_log"][1:]:
+                                    if line != unique_log[-1]: # Если не равна предыдущей
+                                        unique_log.append(line)
+                
+                            log_content = "\n".join(unique_log)
+                            file_name = f"duel_log_{game_id}.txt"
+                
+                            winner_name = titan['name']
+                            # (или возьми shooter['name'], если это блок стрельбы)
+                
+                            with open(file_name, "w", encoding="utf-8") as f:
+                                f.write(
+                                    f"⚔️ ДУЭЛЬ: {game['p1']['name']} vs {game['p2']['name']}\n"
+                                    f"🏆 ПОБЕДИТЕЛЬ: {winner_name}\n"
+                                    f"🔢 ВСЕГО ХОДОВ: {turn_num}\n\n"
+                                    f"{log_content}"
+                                )
+                
+                            # Отправляем файл
+                            log_file = FSInputFile(file_name)
+                            msg = await bot.send_document(
+                                chat_id=callback.message.chat.id,
+                                document=log_file,
+                                caption="<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> Логи Дуэли",
+                                reply_to_message_id=callback.message.message_id
+                            )
+                            asyncio.create_task(delete_later(msg, 180))
+                            os.remove(file_name) # Удаляем файл с диска
+                            if game_id in GAME_LOCKS: del GAME_LOCKS[game_id]
+                            del ACTIVE_DUELS[game_id]; save_duels()
+                            await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> {enemy_pl['name']} погиб от электричества.", reply_markup=None)
+                            await callback.answer(); return
+
+                        game["log"] = f"{log_msg}{extra_log}"
+                        game["turn"] = titan_id # Ход Титану
                 else:
-                    log_msg += "\n<tg-emoji emoji-id='5440660757194744323'>‼️</tg-emoji> Титан летит! Остался 1 ход!"
-                    game["turn"] = caster["id"]
+                    game["log"] = f"{log_msg}\n<tg-emoji emoji-id='5440660757194744323'>‼️</tg-emoji> Титан летит! Осталось ходов: {game['crash_turns']}!"
+                    game["turn"] = caster["id"] # Ход остается у тебя
             else:
                 game["turn"] = enemy["id"]
-
             game["log"] = log_msg
             save_duels()
             await update_duel_message(callback, game_id)
@@ -1609,10 +1872,12 @@ async def duel_handler(callback: types.CallbackQuery):
 #-------------------------------------------------------------------------------------------------------------------ВЫСТРЕЛ (ОСНОВНОЙ И УЛЬТА)
     if action in ["duel_shoot_primary", "duel_gg", "duel_nova", "duel_crash"]:
         game_id = callback.message.message_id
-        if game_id not in ACTIVE_DUELS: return
-        game = ACTIVE_DUELS[game_id]
+        if game_id not in GAME_LOCKS:
+            GAME_LOCKS[game_id] = asyncio.Lock()
 
-        async with game["lock"]:
+        async with GAME_LOCKS[game_id]:
+            if game_id not in ACTIVE_DUELS: return
+            game = ACTIVE_DUELS[game_id]
             if game.get("state") != "fighting":
                 await callback.answer("Не все готовы!", show_alert=True); return
 
@@ -1622,7 +1887,7 @@ async def duel_handler(callback: types.CallbackQuery):
             shooter_id = callback.from_user.id
             if shooter_id != game["turn"]:
                 await callback.answer("Не твой ход!", show_alert=True); return
-
+            
             if shooter_id == game["p1"]["id"]:
                 shooter, target = game["p1"], game["p2"]
             else:
@@ -1638,7 +1903,7 @@ async def duel_handler(callback: types.CallbackQuery):
                 
             if cls == "titan" and action in ["duel_gg", "duel_nova"]:
                 await callback.answer("Это не твоя способность!", show_alert=True); return
-            
+            game["turn_count"] += 1 
             damage = 0
             hits_count = 0
             log_msg = ""
@@ -1649,28 +1914,42 @@ async def duel_handler(callback: types.CallbackQuery):
             if action == "duel_shoot_primary":
                 weapon_type = shooter["weapon"]
                 
+                # --- ЛОГИКА ТУЗА ---
                 if weapon_type == "ace":
                     update_usage(shooter_id, "w_ace")
                     weapon_name = "<tg-emoji emoji-id='5244894167863166109'>🃏</tg-emoji> Пиковый Туз"
                     shooter["ace_streak"] = shooter.get("ace_streak", 0)
                     
-                    base_chance = 50
-                    crit_chance = 28 if shooter["ace_streak"] == 1 else 0
-                    
                     roll = random.randint(1, 100)
                     
-                    if roll <= crit_chance:
-                        damage = 50
-                        shooter["ace_streak"] = 0
-                        log_msg = f"<tg-emoji emoji-id='5276032951342088188'>💥</tg-emoji> <b>MEMENTO MORI!</b> {shooter['name']} критует Тузом на {damage}!"
-                    elif roll <= (crit_chance + base_chance):
-                        damage = 25
-                        shooter["ace_streak"] = 1
-                        log_msg = f"<tg-emoji emoji-id='5379748062124056162'>❗️</tg-emoji> <b>Попадание!</b> {shooter['name']} наносит Тузом {damage} урона."
+                    # Если бафф уже есть (попал в прошлый раз)
+                    if shooter["ace_streak"] > 0:
+                        # 25% шанс на Мементо (50 урона)
+                        if roll <= 25:
+                            damage = 50
+                            shooter["ace_streak"] = 1 # Стрик сохраняется
+                            log_msg = f"<tg-emoji emoji-id='5276032951342088188'>💥</tg-emoji> <b>MEMENTO MORI!</b> {shooter['name']} критует Тузом на {damage}!"
+                        # 45% шанс на обычный (25 урона)
+                        elif roll <= (25 + 45):
+                            damage = 25
+                            shooter["ace_streak"] = 1 # Стрик сохраняется
+                            log_msg = f"<tg-emoji emoji-id='5379748062124056162'>❗️</tg-emoji> <b>Попадание!</b> {shooter['name']} наносит Тузом {damage} урона."
+                        # Иначе промах
+                        else:
+                            damage = 0
+                            shooter["ace_streak"] = 0 # Стрик теряется
+                            log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> <b>Промах!</b> {shooter['name']} мажет с Туза."
+                    
+                    # Если баффа нет (первый выстрел или после промаха)
                     else:
-                        damage = 0
-                        shooter["ace_streak"] = 0
-                        log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> <b>Промах!</b> {shooter['name']} мажет с Туза."
+                        if roll <= 45:
+                            damage = 25
+                            shooter["ace_streak"] = 1 # Получаем стрик
+                            log_msg = f"<tg-emoji emoji-id='5379748062124056162'>❗️</tg-emoji> <b>Попадание!</b> {shooter['name']} наносит Тузом {damage} урона."
+                        else:
+                            damage = 0
+                            shooter["ace_streak"] = 0
+                            log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> <b>Промах!</b> {shooter['name']} мажет с Туза."
 
                 elif weapon_type == "lw":
                     update_usage(shooter_id, "w_lw")
@@ -1680,7 +1959,7 @@ async def duel_handler(callback: types.CallbackQuery):
                     shots_log = []
                     for _ in range(8):
                         if random.randint(1, 100) <= 50:
-                            damage += 4
+                            damage += 5
                             hits_count += 1
                             shots_log.append("💥")
                         else:
@@ -1697,20 +1976,20 @@ async def duel_handler(callback: types.CallbackQuery):
                         log_msg = f"<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> <b>Промах!</b> {shooter['name']} разрядил барабан в кактусы.\n[{visual}]"
 
                 elif weapon_type == "thorn":
-                    update_usage(shooter_id, "w_thorn")
+                    update_usage(shooter_id, "w_thorns")
                     weapon_name = "<tg-emoji emoji-id='5199852661146422050'>🧪</tg-emoji> Шип"
                     shooter["ace_streak"] = 0
                 
                     if random.randint(1, 100) <= 50:
                         hit = True
-                        damage = 22
+                        damage = 29
                         
                         # Если яд уже был, он тикает ПЕРЕД обновлением
                         if target["poison_turns"] > 0:
-                            damage += 12 # Добавляем тик яда к урону выстрела
-                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (34 урона + Яд)"
+                            damage += 11 # Добавляем тик яда к урону выстрела
+                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (40 урона + Яд)"
                         else:
-                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (22 урона + Яд)."
+                            log_msg = f"<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> <b>Попадание!</b> {shooter['name']} отравляет врага Шипом! (29 урона + Яд)."
                             
                         target["poison_turns"] = 1 # Обновляем таймер
                     else:
@@ -1736,22 +2015,60 @@ async def duel_handler(callback: types.CallbackQuery):
                     
                 # --- ТИК ЯДА ПЕРЕД ПОЛЕТОМ ---
                 if target["poison_turns"] > 0:
-                    target["hp"] -= 12
+                    target["hp"] -= 11
                     target["poison_turns"] -= 1
-                    poison_msg = f"\n🧪 Яд сжигает {target['name']} (-12 HP)!"
+                    poison_msg = f"\n🧪 Яд сжигает {target['name']} (-11 HP)!"
                     if target["hp"] <= 0:
                         # (Победа Титана)
                         target["hp"] = 0
                         update_duel_stats(shooter['id'], True); update_duel_stats(target['id'], False)
+                        # ГЕНЕРАЦИЯ ФАЙЛА
+                        unique_log = []
+                        if game["full_log"]:
+                            unique_log.append(game["full_log"][0]) # Первая всегда уникальна
+                            for line in game["full_log"][1:]:
+                                if line != unique_log[-1]: # Если не равна предыдущей
+                                    unique_log.append(line)
+                
+                        log_content = "\n".join(unique_log)
+                        file_name = f"duel_log_{game_id}.txt"
+                
+                        winner_name = shooter['name']
+                        # (или возьми shooter['name'], если это блок стрельбы)
+                
+                        with open(file_name, "w", encoding="utf-8") as f:
+                            f.write(
+                                f"⚔️ ДУЭЛЬ: {game['p1']['name']} vs {game['p2']['name']}\n"
+                                f"🏆 ПОБЕДИТЕЛЬ: {winner_name}\n"
+                                f"🔢 ВСЕГО ХОДОВ: {turn_num}\n\n"
+                                f"{log_content}"
+                            )
+                
+                        # Отправляем файл
+                        log_file = FSInputFile(file_name)
+                        msg = await bot.send_document(
+                            chat_id=callback.message.chat.id,
+                            document=log_file,
+                            caption="<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> Логи Дуэли",
+                            reply_to_message_id=callback.message.message_id
+                        )
+                        asyncio.create_task(delete_later(msg, 180))
+                        os.remove(file_name) # Удаляем файл с диска
+                        if game_id in GAME_LOCKS: del GAME_LOCKS[game_id]
                         del ACTIVE_DUELS[game_id]; save_duels()
                         await callback.message.edit_text(f"🏆 <b>ПОБЕДА!</b>{poison_msg}\n⚡ Титан улетел, а враг умер от яда.", reply_markup=None)
                         await callback.answer(); return
                 else:
                     poison_msg = ""
                 game["pending_crash"] = shooter_id 
-                game["crash_turns"] = 2            
-                game["turn"] = target["id"]        
-                game["log"] = f"<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> <b>ГРОМ!</b> {shooter['name']} прожал ульту! у соперника 2 действия!"
+                game["crash_turns"] = 1
+                game["turn"] = target["id"]   
+                crash_text = f"<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> <b>ГРОМ!</b> {shooter['name']} прожал ульту!"
+                game["log"] = crash_text + poison_msg
+                timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+                turn_num = game.get("turn_count", 1)
+                clean_txt = clean_log_text(crash_text + poison_msg)
+                game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {clean_txt}")
                 save_duels() 
                 await update_duel_message(callback, game_id)
                 await callback.answer()
@@ -1774,10 +2091,10 @@ async def duel_handler(callback: types.CallbackQuery):
                     log_msg += " [Щит сломан]"
 
             if damage > 0 and shooter["buff_heal"] and action == "duel_shoot_primary":
-                shooter["hp"] += 10
-                if shooter["hp"] > 100: shooter["hp"] = 100
+                shooter["hp"] += 11
+                if shooter["hp"] > 135: shooter["hp"] = 135
                 shooter["buff_heal"] = False # Сгорает
-                log_msg += " (<tg-emoji emoji-id='5474317667114457231'>🩸</tg-emoji> +10 HP)"
+                log_msg += " (<tg-emoji emoji-id='5474317667114457231'>🩸</tg-emoji> +11 HP)"
 
             # 1. Наносим урон врагу
             if damage > 0:
@@ -1791,15 +2108,53 @@ async def duel_handler(callback: types.CallbackQuery):
             is_new_poison = (action == "duel_shoot_primary" and shooter["weapon"] == "thorn" and hit)
             
             if target["poison_turns"] > 0 and not is_new_poison:
-                target["hp"] -= 12
+                target["hp"] -= 11
                 target["poison_turns"] -= 1
-                log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-12 HP)!"
+                log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд сжигает {target['name']} (-11 HP)!"
                 if target["hp"] < 0: target["hp"] = 0
 
+            timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+            clean_msg = clean_log_text(log_msg)
+            turn_num = game.get("turn_count", 1)
+            game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {clean_msg}")
+            
             # 3. ПРОВЕРКА ПОБЕДЫ (От выстрела ИЛИ от яда)
             if target["hp"] <= 0:
                 update_duel_stats(shooter['id'], True)
                 update_duel_stats(target['id'], False)
+                # ГЕНЕРАЦИЯ ФАЙЛА
+                unique_log = []
+                if game["full_log"]:
+                    unique_log.append(game["full_log"][0]) # Первая всегда уникальна
+                    for line in game["full_log"][1:]:
+                        if line != unique_log[-1]: # Если не равна предыдущей
+                            unique_log.append(line)
+                
+                log_content = "\n".join(unique_log)
+                file_name = f"duel_log_{game_id}.txt"
+                
+                winner_name = shooter['name']
+                # (или возьми shooter['name'], если это блок стрельбы)
+                
+                with open(file_name, "w", encoding="utf-8") as f:
+                    f.write(
+                        f"⚔️ ДУЭЛЬ: {game['p1']['name']} vs {game['p2']['name']}\n"
+                        f"🏆 ПОБЕДИТЕЛЬ: {winner_name}\n"
+                        f"🔢 ВСЕГО ХОДОВ: {turn_num}\n\n"
+                        f"{log_content}"
+                    )
+                
+                # Отправляем файл
+                log_file = FSInputFile(file_name)
+                msg = await bot.send_document(
+                    chat_id=callback.message.chat.id,
+                    document=log_file,
+                    caption="<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> Логи Дуэли",
+                    reply_to_message_id=callback.message.message_id
+                )
+                asyncio.create_task(delete_later(msg, 180))
+                os.remove(file_name) # Удаляем файл с диска
+                if game_id in GAME_LOCKS: del GAME_LOCKS[game_id]
                 del ACTIVE_DUELS[game_id]
                 
                 # Если умер от яда, а не выстрела, можно поменять текст, но победа все равно моя
@@ -1807,47 +2162,184 @@ async def duel_handler(callback: types.CallbackQuery):
                 await callback.answer()
                 return
 
+            # === ЛОГИКА ПРИЗЕМЛЕНИЯ ТИТАНА (В БЛОКЕ СТРЕЛЬБЫ) ===
             flying_titan_id = game.get("pending_crash")
+            
             if flying_titan_id:
-                if shooter_id != flying_titan_id:
+                titan_id = flying_titan_id
+                titan = game["p1"] if game["p1"]["id"] == titan_id else game["p2"]
+                enemy_pl = game["p1"] if game["p1"]["id"] != titan_id else game["p2"]
+
+                if shooter_id != flying_titan_id: # Если стрелял защитник
                     game["crash_turns"] -= 1
+                    
                     if game["crash_turns"] <= 0:
-                        titan_id = flying_titan_id
-                        titan = game["p1"] if game["p1"]["id"] == titan_id else game["p2"]
-                        enemy_pl = game["p1"] if game["p1"]["id"] != titan_id else game["p2"]
+                        # ПРИЗЕМЛЕНИЕ
                         game["pending_crash"] = None
 
-                    # ТИК ЯДА (У защитника, если он отравлен)
-                    if shooter["poison_turns"] > 0:
-                        shooter["hp"] -= 12
-                        shooter["poison_turns"] -= 1
-                        log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд (-12 HP)"
-                        if shooter["hp"] <= 0:
-                            shooter["hp"] = 0
-                            update_duel_stats(titan['id'], True); update_duel_stats(shooter['id'], False)
-                            del ACTIVE_DUELS[game_id]; save_duels()
-                            await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {shooter['name']} погиб от яда, пытаясь сбить Титана!", reply_markup=None)
-                            await callback.answer(); return
+                        # ТИК ЯДА (У защитника)
+                        if shooter["poison_turns"] > 0:
+                            shooter["hp"] -= 11
+                            shooter["poison_turns"] -= 1
+                            log_msg += f"\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> Яд (-11 HP)"
+                            timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+                            clean_msg = clean_log_text(log_msg)
+                            turn_num = game.get("turn_count", 1)
+                            game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {clean_msg}")
+                            if shooter["hp"] <= 0:
+                                shooter["hp"] = 0
+                                update_duel_stats(titan['id'], True); update_duel_stats(shooter['id'], False)
+                                # ГЕНЕРАЦИЯ ФАЙЛА
+                                unique_log = []
+                                if game["full_log"]:
+                                    unique_log.append(game["full_log"][0]) # Первая всегда уникальна
+                                    for line in game["full_log"][1:]:
+                                        if line != unique_log[-1]: # Если не равна предыдущей
+                                            unique_log.append(line)
+                
+                                log_content = "\n".join(unique_log)
+                                file_name = f"duel_log_{game_id}.txt"
+                
+                                winner_name = titan['name']
+                                # (или возьми shooter['name'], если это блок стрельбы)
+                
+                                with open(file_name, "w", encoding="utf-8") as f:
+                                    f.write(
+                                        f"⚔️ ДУЭЛЬ: {game['p1']['name']} vs {game['p2']['name']}\n"
+                                        f"🏆 ПОБЕДИТЕЛЬ: {winner_name}\n"
+                                        f"🔢 ВСЕГО ХОДОВ: {turn_num}\n\n"
+                                        f"{log_content}"
+                                    )
+                
+                                # Отправляем файл
+                                log_file = FSInputFile(file_name)
+                                msg = await bot.send_document(
+                                    chat_id=callback.message.chat.id,
+                                    document=log_file,
+                                    caption="<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> Логи Дуэли",
+                                    reply_to_message_id=callback.message.message_id
+                                )
+                                asyncio.create_task(delete_later(msg, 180))
+                                os.remove(file_name) # Удаляем файл с диска
+                                if game_id in GAME_LOCKS: del GAME_LOCKS[game_id]
+                                del ACTIVE_DUELS[game_id]; save_duels()
+                                await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5411138633765757782'>🧪</tg-emoji> {shooter['name']} погиб от яда!", reply_markup=None)
+                                await callback.answer(); return
                         
-                        if random.randint(1, 100) <= 17:
+                        # УДАР ТИТАНА
+                        # 1. Прямое (11%)
+                        if random.randint(1, 100) <= 11:
                             enemy_pl["hp"] = 0
-                            update_duel_stats(titan['id'], True)
-                            update_duel_stats(enemy_pl['id'], False)
-                            del ACTIVE_DUELS[game_id]
-                            msg = f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> <b>БУУУМ!</b> {titan['name']} размазал соперника! (-100 HP)"
+                            crash_msg = f"<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> <b>БУУУМ!</b> {titan['name']} размазал соперника! (-100 HP)"
+                            timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+                            turn_num = game.get("turn_count", 1)
+                            game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {clean_log_text(crash_msg)}")
+                            update_duel_stats(titan['id'], True); update_duel_stats(enemy_pl['id'], False)
+                            # ГЕНЕРАЦИЯ ФАЙЛА
+                            unique_log = []
+                            if game["full_log"]:
+                                unique_log.append(game["full_log"][0]) # Первая всегда уникальна
+                                for line in game["full_log"][1:]:
+                                    if line != unique_log[-1]: # Если не равна предыдущей
+                                        unique_log.append(line)
+                
+                            log_content = "\n".join(unique_log)
+                            file_name = f"duel_log_{game_id}.txt"
+                
+                            winner_name = titan['name']
+                            # (или возьми shooter['name'], если это блок стрельбы)
+                
+                            with open(file_name, "w", encoding="utf-8") as f:
+                                f.write(
+                                    f"⚔️ ДУЭЛЬ: {game['p1']['name']} vs {game['p2']['name']}\n"
+                                    f"🏆 ПОБЕДИТЕЛЬ: {winner_name}\n"
+                                    f"🔢 ВСЕГО ХОДОВ: {turn_num}\n\n"
+                                    f"{log_content}"
+                                )
+                
+                            # Отправляем файл
+                            log_file = FSInputFile(file_name)
+                            msg = await bot.send_document(
+                                chat_id=callback.message.chat.id,
+                                document=log_file,
+                                caption="<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> Логи Дуэли",
+                                reply_to_message_id=callback.message.message_id
+                            )
+                            asyncio.create_task(delete_later(msg, 180))
+                            os.remove(file_name) # Удаляем файл с диска
+                            if game_id in GAME_LOCKS: del GAME_LOCKS[game_id]
+                            del ACTIVE_DUELS[game_id]; save_duels()
+                            msg = f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n{crash_msg}"
                             await callback.message.edit_text(msg, reply_markup=None)
-                            await callback.answer()
-                            return
+                            await callback.answer(); return
                         else:
-                            game["log"] = f"{log_msg}\n\n<tg-emoji emoji-id='5467538555158943525'>💭</tg-emoji> {titan['name']} промахивается тандеркрашем!"
+                            # 2. Лужа (20 урона)
+                            splash_dmg = 7
+                            if enemy_pl.get("buff_def", 0) > 0:
+                                blocked = min(splash_dmg, enemy_pl["buff_def"])
+                                splash_dmg -= blocked
+                                enemy_pl["buff_def"] -= blocked
+                            enemy_pl["hp"] -= splash_dmg
+                            if enemy_pl["hp"] < 0: enemy_pl["hp"] = 0
+                            
+                            extra_log = f"\n\n<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> Титан промахнулся, но задел <b>лужей</b> (-7 HP)!"
+                            # --- ЗАПИСЬ В ИСТОРИЮ ---
+                            timestamp = datetime.now(pytz.timezone("Europe/Moscow")).strftime("%H:%M:%S")
+                            # Соединяем log_msg (выстрел врага) и extra_log (приземление)
+                            extra_clean = clean_log_text(extra_log) # (Твоя функция очистки)
+                            game["full_log"].append(f"[{timestamp} | Ход {turn_num}] {extra_clean}")
+                            
+                            # Если враг умер от лужи
+                            if enemy_pl["hp"] <= 0:
+                                update_duel_stats(titan['id'], True); update_duel_stats(enemy_pl['id'], False)
+                                # ГЕНЕРАЦИЯ ФАЙЛА
+                                unique_log = []
+                                if game["full_log"]:
+                                    unique_log.append(game["full_log"][0]) # Первая всегда уникальна
+                                    for line in game["full_log"][1:]:
+                                        if line != unique_log[-1]: # Если не равна предыдущей
+                                            unique_log.append(line)
+                
+                                log_content = "\n".join(unique_log)
+                                file_name = f"duel_log_{game_id}.txt"
+                
+                                winner_name = titan['name']
+                                # (или возьми shooter['name'], если это блок стрельбы)
+                
+                                with open(file_name, "w", encoding="utf-8") as f:
+                                    f.write(
+                                        f"⚔️ ДУЭЛЬ: {game['p1']['name']} vs {game['p2']['name']}\n"
+                                        f"🏆 ПОБЕДИТЕЛЬ: {winner_name}\n"
+                                        f"🔢 ВСЕГО ХОДОВ: {turn_num}\n\n"
+                                        f"{log_content}"
+                                    )
+                
+                                # Отправляем файл
+                                log_file = FSInputFile(file_name)
+                                msg = await bot.send_document(
+                                    chat_id=callback.message.chat.id,
+                                    document=log_file,
+                                    caption="<tg-emoji emoji-id='5373251851074415873'>📝</tg-emoji> Логи Дуэли",
+                                    reply_to_message_id=callback.message.message_id
+                                )
+                                asyncio.create_task(delete_later(msg, 180))
+                                os.remove(file_name) # Удаляем файл с диска
+                                if game_id in GAME_LOCKS: del GAME_LOCKS[game_id]
+                                del ACTIVE_DUELS[game_id]; save_duels()
+                                await callback.message.edit_text(f"<tg-emoji emoji-id='5312315739842026755'>🏆</tg-emoji> <b>ПОБЕДА!</b>\n\n{log_msg}\n\n<tg-emoji emoji-id='5456140674028019486'>⚡️</tg-emoji> {enemy_pl['name']} погиб от электричества.", reply_markup=None)
+                                await callback.answer(); return
+                            
+                            game["log"] = f"{log_msg}{extra_log}"
                             game["turn"] = titan_id
+                    
                     else:
-                        game["log"] = f"{log_msg}\n<tg-emoji emoji-id='5440660757194744323'>‼️</tg-emoji> Титан летит! 1 выстрел остался!"
+                        game["log"] = f"{log_msg}\n<tg-emoji emoji-id='5440660757194744323'>‼️</tg-emoji> Титан летит! Осталось ходов: {game['crash_turns']}!"
                         game["turn"] = shooter_id
             else:
+                # ОБЫЧНАЯ СМЕНА ХОДА
                 game["turn"] = target["id"]
                 game["log"] = log_msg
-
+            save_duels()
             await update_duel_message(callback, game_id)
             await callback.answer()
 
@@ -2407,6 +2899,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
