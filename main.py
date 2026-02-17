@@ -2328,16 +2328,17 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     game["last_update"] = now
     
     def get_hp_bar(hp):
-        max_hp = 135
-        bar_len = 10 # Длина полоски
+        # Если HP > 120 (оверхил), считаем как 100%
+        hp_clamped = min(hp, 120) 
         
-        # Считаем сколько блоков закрасить (процент от макс хп)
-        filled_len = int(round(bar_len * hp / float(max_hp)))
+        # 12 блоков = 120 HP (1 блок = 10 HP)
+        # Это самое интуитивное для игроков
+        blocks = int(hp_clamped / 10)
         
-        # Защита от выхода за границы [0, bar_len]
-        filled_len = max(0, min(bar_len, filled_len))
+        # Защита от багов (0..12)
+        blocks = max(0, min(12, blocks)) 
         
-        return "▓" * filled_len + "░" * (bar_len - filled_len)
+        return "▓" * blocks + "░" * (12 - blocks)
 
     p1 = game["p1"]
     p2 = game["p2"]
@@ -4214,4 +4215,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
