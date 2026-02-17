@@ -2328,8 +2328,16 @@ async def update_duel_message(callback: types.CallbackQuery, game_id):
     game["last_update"] = now
     
     def get_hp_bar(hp):
-        blocks = int(hp / 12) 
-        return "▓" * blocks + "░" * (12 - blocks)
+        max_hp = 135
+        bar_len = 10 # Длина полоски
+        
+        # Считаем сколько блоков закрасить (процент от макс хп)
+        filled_len = int(round(bar_len * hp / float(max_hp)))
+        
+        # Защита от выхода за границы [0, bar_len]
+        filled_len = max(0, min(bar_len, filled_len))
+        
+        return "▓" * filled_len + "░" * (bar_len - filled_len)
 
     p1 = game["p1"]
     p2 = game["p2"]
@@ -4206,3 +4214,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
