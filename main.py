@@ -44,6 +44,9 @@ TOURNAMENT_USERNAMES = []
 CHAT_HISTORY = {}
 SILENT_MODE_USERS = []
 USED_LORE_FACTS = []
+ROAST_COOLDOWN = {} # <--- Если этого нет, добавь для /roast
+GAME_LOCKS = {}     # <--- ВОТ ЭТО НУЖНО ДОБАВИТЬ
+ACTIVE_DUELS = load_duels() # <--- Это у тебя уже есть
 
 ADMIN_CHAT_ID = -1003376406623 
 CHAT_ID = -1002129048580
@@ -2899,6 +2902,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
